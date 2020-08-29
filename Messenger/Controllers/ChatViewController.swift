@@ -14,6 +14,18 @@ class ChatViewController: UIViewController {
         super.viewDidLoad()
         // Do any additional setup after loading the view.
     }
+    
+    override func viewDidAppear(_ animated: Bool) {
+        let isLoggedin = UserDefaults.standard.bool(forKey: "logged_in")
+        
+        if !isLoggedin {
+            let vc = LoginViewController()
+            let nav = UINavigationController(rootViewController: vc)
+            nav.modalPresentationStyle = .fullScreen
+            present(nav, animated: true, completion: nil)
+        }
+        
+    }
 
 
 }
