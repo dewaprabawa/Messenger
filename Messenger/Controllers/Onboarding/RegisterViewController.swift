@@ -21,11 +21,11 @@ class RegisterViewController: UIViewController {
     
     private let ProfilePicture: UIButton = {
         let btn = UIButton(type: .system)
-        btn.setBackgroundImage(UIImage(systemName: "person"), for: .normal)
+        btn.setBackgroundImage(UIImage(systemName: "person.circle"), for: .normal)
         btn.tintColor = .darkGray
-        btn.setTitleColor(.white, for: .normal)
-        btn.layer.masksToBounds = true
         btn.addTarget(self, action: #selector(didTapChangeProfile), for: .touchUpInside)
+        btn.layer.cornerRadius = 10
+        btn.layer.masksToBounds = true
         return btn
     }()
     
@@ -106,8 +106,7 @@ class RegisterViewController: UIViewController {
         self.title = "Login"
         self.view.backgroundColor = .white
         self.navigationController?.navigationBar.prefersLargeTitles = true
-        let rightRegisterButton = UIBarButtonItem(title: "Register", style: .done, target: self, action: #selector(registerNewUser))
-        navigationItem.rightBarButtonItem = rightRegisterButton
+     
         self.stackView.translatesAutoresizingMaskIntoConstraints = false
         self.stackView.alignment = .center
         self.stackView.axis = .vertical
@@ -117,18 +116,10 @@ class RegisterViewController: UIViewController {
         addSubviews()
         constraintSetups()
         
-        scrollView.isUserInteractionEnabled = true
-        
-        let gesture = UIGestureRecognizer(target: self, action: #selector(didTapChangeProfile))
-        ProfilePicture.addGestureRecognizer(gesture)
-        
         emailFeild.delegate = self
         passwordFeild.delegate = self
+   
         
-    }
-    
-    @objc private func didTapChangeProfile(){
-        print("change profile call")
     }
     
     private func addSubviews(){
@@ -136,7 +127,6 @@ class RegisterViewController: UIViewController {
         self.scrollView.addSubview(self.stackView)
         self.stackView.addArrangedSubview(upperContainer)
         stackView.addArrangedSubview(ProfilePicture)
-        stackView.addArrangedSubview(messengerTextLogo)
         stackView.addArrangedSubview(usernameFeild)
         stackView.addArrangedSubview(emailFeild)
         stackView.addArrangedSubview(passwordFeild)
@@ -199,13 +189,29 @@ class RegisterViewController: UIViewController {
         
         guard let username = usernameFeild.text,!username.isEmpty, let email = emailFeild.text, !email.isEmpty,
             let password = passwordFeild.text, !password.isEmpty, password.count >= 8 else {
-                alertController()
+                actionController(with: "Woops", show: "Please fill the required field to register")
                 return
         }
+        
+        AuthManager.shared.registerNewUser(username: username, email: email, password: password) { (success,_) in
+            if success {
+                self.alertController()
+                self.navigationController?.popViewController(animated: true)
+            }else{
+                self.actionController(with: "Ups", show: "the email is already taken")
+            }
+        }
+        
     }
     
     private func alertController(){
-        let alertController = UIAlertController(title: "Hey!", message: "Please fill the required detail to Register", preferredStyle: .actionSheet)
+        let alertController = UIAlertController(title: "Registered!", message: "Now you can log in", preferredStyle: .alert)
+        alertController.addAction(UIAlertAction(title: "OK", style: .default, handler: nil))
+        present(alertController, animated: true, completion: nil)
+    }
+    
+    private func actionController(with title: String, show message: String){
+        let alertController = UIAlertController(title: title, message: message, preferredStyle: .actionSheet)
         alertController.addAction(UIAlertAction(title: "Dismiss", style: .cancel, handler: nil))
         
         present(alertController, animated: true, completion: nil)
@@ -231,4 +237,44 @@ extension RegisterViewController: UITextFieldDelegate {
     }
 }
 
-
+extension RegisterViewController: UIImagePickerControllerDelegate, UINavigationControllerDelegate {
+    @objc private func didTapChangeProfile(){
+        let actionSheet = UIAlertController(title: "Profile picture changes", message: "Would you like to change the profile picture", preferredStyle: .actionSheet)
+        actionSheet.addAction(UIAlertAction(title: "Cancel", style: .cancel, handler: nil))
+        actionSheet.addAction(UIAlertAction(title: "Take Photo", style: .default, handler: { [weak self] _ in
+            self?.takePhoto()
+        }))
+        actionSheet.addAction(UIAlertAction(title: "Pick in Gallery", style: .default, handler: { [weak self] _ in
+            self?.pickInGallery()
+        }))
+        
+        present(actionSheet, animated: true, completion: nil)
+    }
+    
+    
+    private func takePhoto(){
+        let vc = UIImagePickerController()
+        vc.sourceType = .camera
+        vc.allowsEditing = true
+        vc.delegate = self
+        present(vc, animated: true)
+    }
+    
+    private func pickInGallery(){
+        let vc = UIImagePickerController()
+        vc.sourceType = .photoLibrary
+        vc.allowsEditing = true
+        vc.delegate = self
+        present(vc, animated: true)
+    }
+    
+    func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]) {
+        picker.dismiss(animated: true, completion: nil)
+        let selectedImage = info[UIImagePickerController.InfoKey.editedImage] as? UIImage
+        self.ProfilePicture.setBackgroundImage(selectedImage, for: .normal)
+    }
+    
+    func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
+        picker.dismiss(animated: true, completion: nil)
+    }
+}

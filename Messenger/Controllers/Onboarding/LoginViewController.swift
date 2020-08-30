@@ -71,6 +71,16 @@ class LoginViewController: UIViewController {
          return textfield
      }()
     
+    private let createAccountIfDoesNotHave: UIButton = {
+        let btn = UIButton(type:.system)
+        btn.translatesAutoresizingMaskIntoConstraints = false
+        btn.backgroundColor = .white
+        btn.setTitle("Don't have an account ?", for: .normal)
+        btn.setTitleColor(.systemBlue, for: .normal)
+        btn.addTarget(self, action: #selector(registerNewUser), for: .touchUpInside)
+        return btn
+    }()
+    
     private let loginButton: UIButton = {
         let btn = UIButton(type: .system)
         btn.setTitle("LOG IN", for: .normal)
@@ -89,29 +99,32 @@ class LoginViewController: UIViewController {
         self.title = "Login"
         self.view.backgroundColor = .white
         self.navigationController?.navigationBar.prefersLargeTitles = true
-        let rightRegisterButton = UIBarButtonItem(title: "Register", style: .done, target: self, action: #selector(registerNewUser))
-        navigationItem.rightBarButtonItem = rightRegisterButton
+//        let rightRegisterButton = UIBarButtonItem(title: "Register", style: .done, target: self, action: #selector(registerNewUser))
+//        navigationItem.rightBarButtonItem = rightRegisterButton
 
         self.stackView.translatesAutoresizingMaskIntoConstraints = false
         self.stackView.alignment = .center
         self.stackView.axis = .vertical
         self.stackView.spacing = 10
         addSubviews()
+        
         constraintSetups()
         emailFeild.delegate = self
         passwordFeild.delegate = self
+        
      
     }
     
     private func addSubviews(){
-     view.addSubview(scrollView)
-     self.scrollView.addSubview(self.stackView)
-     self.stackView.addArrangedSubview(upperContainer)
-     stackView.addArrangedSubview(messengerLogo)
-     stackView.addArrangedSubview(messengerTextLogo)
-     stackView.addArrangedSubview(emailFeild)
-     stackView.addArrangedSubview(passwordFeild)
-     stackView.addArrangedSubview(loginButton)
+        view.addSubview(scrollView)
+        self.scrollView.addSubview(self.stackView)
+        self.stackView.addArrangedSubview(upperContainer)
+        stackView.addArrangedSubview(messengerLogo)
+        stackView.addArrangedSubview(messengerTextLogo)
+        stackView.addArrangedSubview(emailFeild)
+        stackView.addArrangedSubview(passwordFeild)
+        stackView.addArrangedSubview(loginButton)
+        stackView.addArrangedSubview(createAccountIfDoesNotHave)
     }
     
     
@@ -160,8 +173,6 @@ class LoginViewController: UIViewController {
         
     }
     
-    
-    
     @objc private func didTapLogin(){
         emailFeild.resignFirstResponder()
         passwordFeild.resignFirstResponder()
@@ -170,6 +181,12 @@ class LoginViewController: UIViewController {
             let password = passwordFeild.text, !password.isEmpty, password.count >= 8 else {
                 alertController()
                 return
+        }
+        
+        AuthManager.shared.loginUser(email: email, password: password) { (success) in
+            if success {
+                self.dismiss(animated: true, completion: nil)
+            }
         }
     }
     
