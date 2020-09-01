@@ -7,6 +7,8 @@
 //
 
 import FirebaseAuth
+import FBSDKLoginKit
+import GoogleSignIn
 
 public enum errorDescription:Error{
     case emailAlreadyExisted
@@ -62,6 +64,14 @@ public class AuthManager {
     
     /// SignOutUser
     public func signOutUser(completion:@escaping (Bool)->Void){
+        
+        /// Log out facebook
+        FBSDKLoginKit.LoginManager().logOut()
+        
+        ///Google sign out
+        
+        GIDSignIn.sharedInstance()?.signOut()
+        
         do{
            try FirebaseAuth.Auth.auth().signOut()
             completion(true)

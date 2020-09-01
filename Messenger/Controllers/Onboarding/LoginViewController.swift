@@ -7,6 +7,10 @@
 //
 
 import UIKit
+import FirebaseAuth
+import FBSDKLoginKit
+import GoogleSignIn
+
 
 class LoginViewController: UIViewController {
 
@@ -27,7 +31,7 @@ class LoginViewController: UIViewController {
         return image
     }()
     
-    let messengerTextLogo: UILabel = {
+    private let messengerTextLogo: UILabel = {
         let lb = UILabel()
         lb.text = "Messenger"
         lb.textAlignment = .center
@@ -37,7 +41,7 @@ class LoginViewController: UIViewController {
         return lb
     }()
     
-    let upperContainer: UIView = {
+    private let upperContainer: UIView = {
         let vw = UIView()
         vw.backgroundColor = .green
         vw.translatesAutoresizingMaskIntoConstraints = false
@@ -93,21 +97,62 @@ class LoginViewController: UIViewController {
         return btn
     }()
     
+    private let facebookBtn = FBLoginButton()
+    
+    private let googleBtn:GIDSignInButton = {
+        var btn = GIDSignInButton()
+        btn.style = .wide
+        btn.layer.cornerRadius = 10
+        btn.layer.masksToBounds = true
+        return btn
+    }()
+    
+    private let facebookButtonContainer:UIView = {
+        let vw = UIView()
+        vw.translatesAutoresizingMaskIntoConstraints = false
+        vw.layer.cornerRadius = 10
+        vw.layer.masksToBounds = true
+        vw.backgroundColor = .systemBlue
+        return vw
+    }()
+    
+    private var loginObserver: NSObjectProtocol?
+    
+    private var alertOberver: NSObjectProtocol?
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         // Do any additional setup after loading the view.
-        self.title = "Login"
+        
+        title = "Login"
         self.view.backgroundColor = .white
         self.navigationController?.navigationBar.prefersLargeTitles = true
-//        let rightRegisterButton = UIBarButtonItem(title: "Register", style: .done, target: self, action: #selector(registerNewUser))
-//        navigationItem.rightBarButtonItem = rightRegisterButton
-
+    
         self.stackView.translatesAutoresizingMaskIntoConstraints = false
         self.stackView.alignment = .center
         self.stackView.axis = .vertical
         self.stackView.spacing = 10
-        addSubviews()
         
+        self.facebookBtn.translatesAutoresizingMaskIntoConstraints = false
+        self.facebookBtn.delegate = self
+        self.facebookBtn.permissions = ["email, public_profile"]
+        
+        GIDSignIn.sharedInstance()?.presentingViewController = self
+        loginObserver = NotificationCenter.default.addObserver(forName: .didLoginNotification, object: nil, queue: .main, using: {[weak self] _ in
+            guard let strongSelf = self else {
+                return
+            }
+            strongSelf.dismiss(animated: true, completion: nil)
+        })
+        
+        alertOberver = NotificationCenter.default.addObserver(forName: .didTapAlertNotification, object: nil, queue: .main, using: {[weak self] _ in
+            guard let strongSelf = self else {
+                return
+            }
+            strongSelf.actionController(with: "Woops", show: "The email already existed")
+        })
+        
+        addSubviews()
         constraintSetups()
         emailFeild.delegate = self
         passwordFeild.delegate = self
@@ -124,9 +169,18 @@ class LoginViewController: UIViewController {
         stackView.addArrangedSubview(emailFeild)
         stackView.addArrangedSubview(passwordFeild)
         stackView.addArrangedSubview(loginButton)
+        facebookButtonContainer.addSubview(facebookBtn)
+        stackView.addArrangedSubview(googleBtn)
+        stackView.addArrangedSubview(facebookButtonContainer)
         stackView.addArrangedSubview(createAccountIfDoesNotHave)
+        
     }
     
+    deinit {
+        if let observer = loginObserver {
+            NotificationCenter.default.removeObserver(observer )
+        }
+    }
     
     private func constraintSetups(){
         NSLayoutConstraint.activate([
@@ -149,16 +203,30 @@ class LoginViewController: UIViewController {
             ),
             ///Constraint password Textfield
             passwordFeild.heightAnchor.constraint(equalToConstant: 45),
-            passwordFeild.heightAnchor.constraint(equalToConstant: 45),
             passwordFeild.leadingAnchor.constraint(equalTo: stackView.leadingAnchor,constant: 20),
             passwordFeild.trailingAnchor.constraint(equalTo: stackView.trailingAnchor, constant: -20
             ),
             ///Constraint login button
             loginButton.heightAnchor.constraint(equalToConstant: 45),
-            loginButton.heightAnchor.constraint(equalToConstant: 45),
             loginButton.leadingAnchor.constraint(equalTo: stackView.leadingAnchor,constant: 20),
-            loginButton.trailingAnchor.constraint(equalTo: stackView.trailingAnchor, constant: -20
-            ),
+            loginButton.trailingAnchor.constraint(equalTo: stackView.trailingAnchor, constant: -20),
+                
+            ///Facebook Login Button
+            facebookButtonContainer.heightAnchor.constraint(equalToConstant: 45),
+            facebookButtonContainer.leadingAnchor.constraint(equalTo: stackView.leadingAnchor,constant: 20),
+            facebookButtonContainer.trailingAnchor.constraint(equalTo: stackView.trailingAnchor, constant: -20),
+            
+            facebookBtn.topAnchor.constraint(equalTo: facebookButtonContainer.topAnchor),
+            facebookBtn.bottomAnchor.constraint(equalTo: facebookButtonContainer.bottomAnchor),
+            facebookBtn.leadingAnchor.constraint(equalTo: facebookButtonContainer.leadingAnchor),
+            facebookBtn.trailingAnchor.constraint(equalTo: facebookButtonContainer.trailingAnchor),
+            
+            
+             ///Google Login Button
+            googleBtn.heightAnchor.constraint(equalToConstant: 45),
+            googleBtn.leadingAnchor.constraint(equalTo: stackView.leadingAnchor,constant: 20),
+            googleBtn.trailingAnchor.constraint(equalTo: stackView.trailingAnchor, constant: -20),
+            
             
             ///Constraint stack view
             self.stackView.leadingAnchor.constraint(equalTo: self.scrollView.leadingAnchor),
@@ -197,6 +265,13 @@ class LoginViewController: UIViewController {
         present(alertController, animated: true, completion: nil)
     }
     
+    private func actionController(with title: String, show message: String){
+        let alertController = UIAlertController(title: title, message: message, preferredStyle: .alert)
+        alertController.addAction(UIAlertAction(title: "Dismiss", style: .cancel, handler: nil))
+        
+        present(alertController, animated: true, completion: nil)
+    }
+    
     @objc private func registerNewUser(){
         let vc = RegisterViewController()
         navigationController?.pushViewController(vc, animated: true)
@@ -212,5 +287,72 @@ extension LoginViewController: UITextFieldDelegate {
             didTapLogin()
         }
         return true
+    }
+}
+
+extension LoginViewController: LoginButtonDelegate {
+    
+    func loginButtonDidLogOut(_ loginButton: FBLoginButton) {
+        ///
+    }
+    
+    
+    func loginButton(_ loginButton: FBLoginButton, didCompleteWith result: LoginManagerLoginResult?, error: Error?) {
+        guard let token = result?.token?.tokenString else {
+            print("User failed to log in with facebook")
+            return
+        }
+        
+        let facebookRequest = FBSDKLoginKit.GraphRequest(graphPath: "me", parameters: ["fields":"email,name"], tokenString: token, version: nil, httpMethod: .get)
+        
+        facebookRequest.start { (connection, result, error) in
+            guard let result = result as? [String:Any],
+                error == nil else {
+                    return
+            }
+            
+        
+            guard let name = result["name"] as? String, let email = result["email"] as? String else {
+                print("failed take name and email in facebook")
+                return
+            }
+            
+            let credential = FacebookAuthProvider.credential(withAccessToken: token)
+            
+            
+            DatabaseManager.shared.checkIsEmailExisted(with: email) { (success) in
+                if !success{
+                    /// if the email not exist
+                    DatabaseManager.shared.insertIntoDatabase(with: ChatAppUser(username: name, email: email)) { (success) in
+                        
+                        FirebaseAuth.Auth.auth().signIn(with: credential) { [weak self] authRes, error in
+                            guard let strongSelf = self else { return }
+                            guard authRes != nil, error == nil else {
+                                return
+                            }
+                            print("Succesfully logged user in")
+                            strongSelf.dismiss(animated: true, completion: nil)
+                        }
+                        
+                    }
+                }else{
+                    /// if the email not exist
+                    FirebaseAuth.Auth.auth().signIn(with: credential) { [weak self] authRes, error in
+                        guard let strongSelf = self else { return }
+                        guard authRes != nil, error == nil else {
+                            return
+                        }
+                        print("Succesfully logged user in")
+                        strongSelf.dismiss(animated: true, completion: nil)
+                    }
+                    
+                    
+                }
+            
+                
+            }
+            
+            
+        }
     }
 }
