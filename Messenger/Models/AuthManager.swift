@@ -19,9 +19,15 @@ public enum errorDescription:Error{
 public class AuthManager {
     static var shared = AuthManager()
     
-    public func registerNewUser(username:String, email: String, password:String, completion:@escaping (Bool, errorDescription?)->Void){
+    public typealias completionHandler = (Bool, errorDescription?)-> Void
+    
+    /*
+     /// - Register Email, checking the existing email and and inserting to database
+     */
+    
+    public func registerNewUser(username:String, email: String, password:String, completion:@escaping completionHandler ){
         
-        ///:- checking whether the email already exist
+        ///- checking whether the email already exist
         DatabaseManager.shared.checkIsEmailExisted(with: email) { (isExist) in
             /// if no email register proceed to auth proccesss
             
@@ -50,6 +56,7 @@ public class AuthManager {
             }
         }
     }
+    
     
     /// Login user
     public func loginUser(email:String, password:String, completion:@escaping (Bool)-> Void){

@@ -7,9 +7,26 @@
 //
 
 import UIKit
+import JGProgressHUD
 
 class NewChatViewController: UIViewController {
 
+    private let spinner: JGProgressHUD = {
+        let spinner = JGProgressHUD(style: .dark)
+        return spinner
+    }()
+    
+    private let noChatLabel: UILabel = {
+         let label = UILabel()
+         label.text = "No Chat!"
+         label.textAlignment = .center
+         label.textColor = .gray
+         label.font = .systemFont(ofSize: 21, weight: .medium)
+         label.isHidden = true
+         return label
+     }()
+     
+    
     private var searchBar: UISearchBar = {
         let searchBar = UISearchBar()
         searchBar.placeholder = "Search for users..."

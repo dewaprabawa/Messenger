@@ -55,6 +55,11 @@ extension DatabaseManager {
 }
 
 struct ChatAppUser{
+    
     let username:String
     let email:String
+    
+    var profilePictureFileName:String{
+        return "\(email.safeDatabaseKey())_profile_picture.png"
+    }
 }

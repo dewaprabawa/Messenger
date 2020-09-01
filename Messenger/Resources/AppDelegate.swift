@@ -63,15 +63,44 @@ class AppDelegate: UIResponder, UIApplicationDelegate, GIDSignInDelegate {
             if !success{
                 
                 DatabaseManager.shared.insertIntoDatabase(with: ChatAppUser(username: name, email: email)) { (completeToInsert) in
-                  
-                    FirebaseAuth.Auth.auth().signIn(with: credential) { (authRes, error) in
-                        guard authRes != nil, error == nil else {
-                            print("failed to log in with google credential")
-                            return
+                    
+                    if completeToInsert {
+                        
+                        if user.profile.hasImage {
+                            guard let url = user.profile.imageURL(withDimension: 200) else {
+                                return
+                            }
+                            
+                            URLSession.shared.dataTask(with:  url) { (data, _, _) in
+                                guard let data = data else { return }
+                                
+                                let filename = "\(email.safeDatabaseKey())_profile_picture.png"
+                                StorageManager.shared.uploadProfilePicture(with: data, and: filename) { (result) in
+                                    switch (result){
+                                    case .success(let imageURL):
+                                        UserDefaults.standard.set(imageURL, forKey: "profile_picture_url")
+                                        print(imageURL)
+                                    case .failure(let error):
+                                        print("failed to download imageURL :\(error)")
+                                        
+                                    }
+                                }
+                            }.resume()
+                            
                         }
                         
-                        print("Succeed to log in with google")
-                        NotificationCenter.default.post(name: .didLoginNotification, object: nil)
+                        
+                        FirebaseAuth.Auth.auth().signIn(with: credential) { (authRes, error) in
+                            guard authRes != nil, error == nil else {
+                                print("failed to log in with google credential")
+                                return
+                            }
+                            
+                            print("Succeed to log in with google")
+                            NotificationCenter.default.post(name: .didLoginNotification, object: nil)
+                        }
+                    }else{
+                        print("failed inserting data to firebase")
                     }
                     
                 }
@@ -85,9 +114,9 @@ class AppDelegate: UIResponder, UIApplicationDelegate, GIDSignInDelegate {
                 }
             }
         }
+        
+    }
     
-     }
-     
     func sign(_ signIn: GIDSignIn!, didDisconnectWith user: GIDGoogleUser!, withError error: Error!) {
         print("google user was disconnected")
     }

@@ -24,6 +24,7 @@
 		C358E8FF24FA845000C9D542 /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = C358E8FE24FA845000C9D542 /* GoogleService-Info.plist */; };
 		C35FAEA924FE19BA00A98E91 /* ChatToConversationController.swift in Sources */ = {isa = PBXBuildFile; fileRef = C35FAEA824FE19BA00A98E91 /* ChatToConversationController.swift */; };
 		C35FAEAB24FE292000A98E91 /* NewChatViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = C35FAEAA24FE292000A98E91 /* NewChatViewController.swift */; };
+		C35FAEAD24FE4A3D00A98E91 /* StorageManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = C35FAEAC24FE4A3D00A98E91 /* StorageManager.swift */; };
 		E5C66007FE811193E96D94BC /* Pods_Messenger.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E52D7EBF3CFE522912ED9C63 /* Pods_Messenger.framework */; };
 /* End PBXBuildFile section */
 
@@ -49,6 +50,7 @@
 		C358E8FE24FA845000C9D542 /* GoogleService-Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
 		C35FAEA824FE19BA00A98E91 /* ChatToConversationController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatToConversationController.swift; sourceTree = "<group>"; };
 		C35FAEAA24FE292000A98E91 /* NewChatViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NewChatViewController.swift; sourceTree = "<group>"; };
+		C35FAEAC24FE4A3D00A98E91 /* StorageManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StorageManager.swift; sourceTree = "<group>"; };
 		E52D7EBF3CFE522912ED9C63 /* Pods_Messenger.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_Messenger.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -138,6 +140,7 @@
 			isa = PBXGroup;
 			children = (
 				C339D1F524FB604A00A5B62B /* DatabaseManager.swift */,
+				C35FAEAC24FE4A3D00A98E91 /* StorageManager.swift */,
 				C339D1F724FB60B800A5B62B /* AuthManager.swift */,
 			);
 			path = Models;
@@ -317,6 +320,7 @@
 				C33B9C0524F9150600ED6974 /* LoginViewController.swift in Sources */,
 				C339D1F624FB604A00A5B62B /* DatabaseManager.swift in Sources */,
 				C33B9C0724F9151000ED6974 /* RegisterViewController.swift in Sources */,
+				C35FAEAD24FE4A3D00A98E91 /* StorageManager.swift in Sources */,
 				C33B9BEF24F90F8000ED6974 /* ChatViewController.swift in Sources */,
 				C35FAEA924FE19BA00A98E91 /* ChatToConversationController.swift in Sources */,
 				C33B9C0B24F9152A00ED6974 /* PhotoViewerViewController.swift in Sources */,

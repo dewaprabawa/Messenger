@@ -13,7 +13,7 @@ import GoogleSignIn
 import JGProgressHUD
 
 class LoginViewController: UIViewController {
-       
+    
     private let spinner: JGProgressHUD = {
         let spinner = JGProgressHUD(style: .dark)
         return spinner
@@ -67,18 +67,18 @@ class LoginViewController: UIViewController {
     }()
     
     private let passwordFeild: UITextField = {
-         let textfield = UITextField()
-         textfield.translatesAutoresizingMaskIntoConstraints = false
-         textfield.autocapitalizationType = .none
-         textfield.isSelected = true
-         textfield.autocorrectionType = .no
-         textfield.layer.cornerRadius = 12
-         textfield.layer.borderWidth = 1
-         textfield.leftView = UIView(frame: CGRect(x: 0, y: 0, width: 20, height: 0))
-         textfield.layer.borderColor = UIColor.lightGray.cgColor
-         textfield.placeholder = "  Password..."
-         return textfield
-     }()
+        let textfield = UITextField()
+        textfield.translatesAutoresizingMaskIntoConstraints = false
+        textfield.autocapitalizationType = .none
+        textfield.isSelected = true
+        textfield.autocorrectionType = .no
+        textfield.layer.cornerRadius = 12
+        textfield.layer.borderWidth = 1
+        textfield.leftView = UIView(frame: CGRect(x: 0, y: 0, width: 20, height: 0))
+        textfield.layer.borderColor = UIColor.lightGray.cgColor
+        textfield.placeholder = "  Password..."
+        return textfield
+    }()
     
     private let createAccountIfDoesNotHave: UIButton = {
         let btn = UIButton(type:.system)
@@ -132,7 +132,7 @@ class LoginViewController: UIViewController {
         title = "Login"
         self.view.backgroundColor = .white
         self.navigationController?.navigationBar.prefersLargeTitles = true
-    
+        
         self.stackView.translatesAutoresizingMaskIntoConstraints = false
         self.stackView.alignment = .center
         self.stackView.axis = .vertical
@@ -162,7 +162,7 @@ class LoginViewController: UIViewController {
         emailFeild.delegate = self
         passwordFeild.delegate = self
         
-     
+        
     }
     
     private func addSubviews(){
@@ -215,7 +215,7 @@ class LoginViewController: UIViewController {
             loginButton.heightAnchor.constraint(equalToConstant: 45),
             loginButton.leadingAnchor.constraint(equalTo: stackView.leadingAnchor,constant: 20),
             loginButton.trailingAnchor.constraint(equalTo: stackView.trailingAnchor, constant: -20),
-                
+            
             ///Facebook Login Button
             facebookButtonContainer.heightAnchor.constraint(equalToConstant: 45),
             facebookButtonContainer.leadingAnchor.constraint(equalTo: stackView.leadingAnchor,constant: 20),
@@ -227,7 +227,7 @@ class LoginViewController: UIViewController {
             facebookBtn.trailingAnchor.constraint(equalTo: facebookButtonContainer.trailingAnchor),
             
             
-             ///Google Login Button
+            ///Google Login Button
             googleBtn.heightAnchor.constraint(equalToConstant: 45),
             googleBtn.leadingAnchor.constraint(equalTo: stackView.leadingAnchor,constant: 20),
             googleBtn.trailingAnchor.constraint(equalTo: stackView.trailingAnchor, constant: -20),
@@ -311,7 +311,7 @@ extension LoginViewController: LoginButtonDelegate {
             return
         }
         
-        let facebookRequest = FBSDKLoginKit.GraphRequest(graphPath: "me", parameters: ["fields":"email,name"], tokenString: token, version: nil, httpMethod: .get)
+        let facebookRequest = FBSDKLoginKit.GraphRequest(graphPath: "me", parameters: ["fields":"email,name, picture.type(large)"], tokenString: token, version: nil, httpMethod: .get)
         
         facebookRequest.start { (connection, result, error) in
             guard let result = result as? [String:Any],
@@ -319,31 +319,63 @@ extension LoginViewController: LoginButtonDelegate {
                     return
             }
             
-        
-            guard let name = result["name"] as? String, let email = result["email"] as? String else {
+            
+            guard let name = result["name"] as? String, let email = result["email"] as? String, let picture = result["picture"] as? [String:Any], let data = picture["data"] as? [String: Any], let url = data["url"] as? String, let validURL = URL(string: url) else {
                 print("failed take name and email in facebook")
                 return
             }
             
+            
             let credential = FacebookAuthProvider.credential(withAccessToken: token)
             
             DispatchQueue.main.async {
-            self.spinner.show(in: self.view)
+                self.spinner.show(in: self.view)
             }
+            
             
             DatabaseManager.shared.checkIsEmailExisted(with: email) { (success) in
                 if !success{
                     /// if the email not exist
+                    
+                    FirebaseAuth.Auth.auth().signIn(with: credential) { [weak self] authRes, error in
+                        guard let strongSelf = self else { return }
+                        guard authRes != nil, error == nil else {
+                            return
+                        }
+                        print("Succesfully logged user in")
+                        
+                    }
+                    
                     DatabaseManager.shared.insertIntoDatabase(with: ChatAppUser(username: name, email: email)) { (success) in
                         
-                        FirebaseAuth.Auth.auth().signIn(with: credential) { [weak self] authRes, error in
-                            guard let strongSelf = self else { return }
-                            guard authRes != nil, error == nil else {
-                                return
-                            }
-                            print("Succesfully logged user in")
-                            strongSelf.spinner.dismiss()
-                            strongSelf.dismiss(animated: true, completion: nil)
+                        if success {
+                        
+                            URLSession.shared.dataTask(with: validURL) { (data, _, _) in
+                               print("checking the url :\(validURL)")
+                                
+                                guard let data = data else { return }
+                                
+  
+                                
+                                let filename = "\(email.safeDatabaseKey())_profile_picture.png"
+                                
+                                StorageManager.shared.uploadProfilePicture(with: data, and: filename) { (result) in
+                                    switch (result){
+                                    case .success(let imageURL):
+                                        UserDefaults.standard.set(imageURL, forKey: "profile_picture_url")
+                                        print(imageURL)
+                                    case .failure(let error):
+                                        print("failed to download imageURL :\(error)")
+                                        
+                                    }
+                                }
+                                
+                                DispatchQueue.main.async {
+                                    self.spinner.dismiss()
+                                    self.dismiss(animated: true, completion: nil)
+                                }
+                            }.resume()
+                            
                         }
                         
                     }
@@ -361,7 +393,7 @@ extension LoginViewController: LoginButtonDelegate {
                     
                     
                 }
-            
+                
                 
             }
             

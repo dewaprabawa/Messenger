@@ -7,8 +7,14 @@
 //
 
 import UIKit
+import JGProgressHUD
 
 class RegisterViewController: UIViewController {
+    
+    private let spinner:JGProgressHUD = {
+        let spinner = JGProgressHUD(style: .dark)
+        return spinner
+    }()
     
     private let scrollView: UIScrollView = {
         let scrollView = UIScrollView()
@@ -19,13 +25,24 @@ class RegisterViewController: UIViewController {
     
     let stackView = UIStackView()
     
-    private let ProfilePicture: UIButton = {
+    private let ProfilePicture: UIImageView = {
+        let img = UIImageView()
+        img.translatesAutoresizingMaskIntoConstraints = false
+        img.layer.cornerRadius = 10
+        img.image = UIImage(systemName: "person.circle")
+        img.tintColor = .darkGray
+        img.layer.masksToBounds = true
+        return img
+    }()
+
+    private let editButton: UIButton = {
         let btn = UIButton(type: .system)
-        btn.setBackgroundImage(UIImage(systemName: "person.circle"), for: .normal)
-        btn.tintColor = .darkGray
+        btn.setImage(UIImage(systemName: "pencil"), for: .normal)
+        btn.setTitle(" Edit", for: .normal)
+        btn.setTitleColor(.black, for: .normal)
+        btn.translatesAutoresizingMaskIntoConstraints = false
         btn.addTarget(self, action: #selector(didTapChangeProfile), for: .touchUpInside)
-        btn.layer.cornerRadius = 10
-        btn.layer.masksToBounds = true
+        btn.titleLabel?.font = UIFont.boldSystemFont(ofSize: 15)
         return btn
     }()
     
@@ -127,6 +144,8 @@ class RegisterViewController: UIViewController {
         self.scrollView.addSubview(self.stackView)
         self.stackView.addArrangedSubview(upperContainer)
         stackView.addArrangedSubview(ProfilePicture)
+        ProfilePicture.isUserInteractionEnabled = true
+        stackView.addArrangedSubview(editButton)
         stackView.addArrangedSubview(usernameFeild)
         stackView.addArrangedSubview(emailFeild)
         stackView.addArrangedSubview(passwordFeild)
@@ -169,6 +188,8 @@ class RegisterViewController: UIViewController {
             loginButton.trailingAnchor.constraint(equalTo: stackView.trailingAnchor, constant: -20
             ),
             
+            ///Contraint edit button
+            
             ///Constraint stack view
             self.stackView.leadingAnchor.constraint(equalTo: self.scrollView.leadingAnchor),
             self.stackView.topAnchor.constraint(equalTo: self.scrollView.topAnchor),
@@ -193,12 +214,38 @@ class RegisterViewController: UIViewController {
                 return
         }
         
-        AuthManager.shared.registerNewUser(username: username, email: email, password: password) { (success,_) in
+        self.spinner.show(in: self.view)
+        
+        
+        guard let image = self.ProfilePicture.image,
+            let data = image.pngData() else { return }
+        
+        AuthManager.shared.registerNewUser(username: username, email: email, password: password) { [weak self] success,_ in
+            
+            guard let strongSelf = self else { return }
+            
             if success {
-                self.alertController()
-                self.navigationController?.popViewController(animated: true)
+                
+                let filename = "\(email.safeDatabaseKey())_profile_picture.png"
+                
+                StorageManager.shared.uploadProfilePicture(with: data, and: filename) { (result) in
+                    switch (result){
+                    case .success(let imageURL):
+                        UserDefaults.standard.set(imageURL, forKey: "profile_picture_url")
+                        print(imageURL)
+                    case .failure(let error):
+                        fatalError("failed download URL \(error)")
+                    default: break
+                    }
+                }
+                
+                strongSelf.spinner.dismiss()
+                strongSelf.alertController()
+                strongSelf.dismiss(animated: true, completion: nil)
             }else{
-                self.actionController(with: "Ups", show: "the email is already taken")
+                strongSelf.spinner.dismiss()
+                strongSelf.actionController(with: "Ups", show: "the email is already taken")
+                
             }
         }
         
@@ -251,7 +298,6 @@ extension RegisterViewController: UIImagePickerControllerDelegate, UINavigationC
         present(actionSheet, animated: true, completion: nil)
     }
     
-    
     private func takePhoto(){
         let vc = UIImagePickerController()
         vc.sourceType = .camera
@@ -271,7 +317,7 @@ extension RegisterViewController: UIImagePickerControllerDelegate, UINavigationC
     func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]) {
         picker.dismiss(animated: true, completion: nil)
         let selectedImage = info[UIImagePickerController.InfoKey.editedImage] as? UIImage
-        self.ProfilePicture.setBackgroundImage(selectedImage, for: .normal)
+        self.ProfilePicture.image = selectedImage
     }
     
     func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
