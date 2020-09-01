@@ -11,9 +11,60 @@ import FirebaseAuth
 
 class ChatViewController: UIViewController {
     
+    private let tableView: UITableView = {
+        let table = UITableView()
+        table.register(UITableViewCell.self, forCellReuseIdentifier: "cell")
+        table.translatesAutoresizingMaskIntoConstraints = false
+        return table
+    }()
+    
+    private let noChatLabel: UILabel = {
+        let label = UILabel()
+        label.text = "No Chat!"
+        label.textAlignment = .center
+        label.textColor = .gray
+        label.font = .systemFont(ofSize: 21, weight: .medium)
+        label.isHidden = true
+        return label
+    }()
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         // Do any additional setup after loading the view.
+        self.navigationItem.rightBarButtonItem = UIBarButtonItem(barButtonSystemItem: .add, target: self, action: #selector(addNewChat))
+        addSubviews()
+        fetchChat()
+        tableviewSetups()
+        setupviews()
+    }
+    
+    private func setupviews(){
+        
+        NSLayoutConstraint.activate([
+            tableView.topAnchor.constraint(equalTo: view.topAnchor),
+            tableView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            tableView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            tableView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+        ])
+    }
+    
+    @objc private func addNewChat(){
+        let nav = UINavigationController(rootViewController: NewChatViewController())
+        present(nav, animated: true, completion: nil)
+    }
+    
+    private func tableviewSetups(){
+        tableView.delegate = self
+        tableView.dataSource = self
+    }
+    
+    private func addSubviews(){
+       view.addSubview(tableView)
+        view.addSubview(noChatLabel)
+    }
+    
+    private func fetchChat(){
+        
     }
     
     override func viewDidAppear(_ animated: Bool) {
@@ -23,6 +74,7 @@ class ChatViewController: UIViewController {
 
         checkWheterItLoggedIn()
     }
+    
 
     private func checkWheterItLoggedIn(){
         
@@ -37,3 +89,23 @@ class ChatViewController: UIViewController {
     
 }
 
+
+extension ChatViewController: UITableViewDelegate, UITableViewDataSource {
+    
+    func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
+        1
+    }
+    
+    func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
+        let cell = tableView.dequeueReusableCell(withIdentifier: "cell", for: indexPath)
+        cell.textLabel?.text = "First Chat"
+        cell.accessoryType = .disclosureIndicator
+        return cell
+    }
+    
+    func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
+        tableView.deselectRow(at: indexPath, animated: true)
+        let vc = ChatToConversationController()
+        navigationController?.pushViewController(vc, animated: true)
+    }
+}

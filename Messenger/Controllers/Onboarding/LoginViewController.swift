@@ -10,10 +10,15 @@ import UIKit
 import FirebaseAuth
 import FBSDKLoginKit
 import GoogleSignIn
-
+import JGProgressHUD
 
 class LoginViewController: UIViewController {
-
+       
+    private let spinner: JGProgressHUD = {
+        let spinner = JGProgressHUD(style: .dark)
+        return spinner
+    }()
+    
     private let scrollView: UIScrollView = {
         let scrollView = UIScrollView()
         scrollView.translatesAutoresizingMaskIntoConstraints = false
@@ -251,8 +256,11 @@ class LoginViewController: UIViewController {
                 return
         }
         
+        spinner.show(in: view)
+        
         AuthManager.shared.loginUser(email: email, password: password) { (success) in
             if success {
+                self.spinner.dismiss()
                 self.dismiss(animated: true, completion: nil)
             }
         }
@@ -319,6 +327,9 @@ extension LoginViewController: LoginButtonDelegate {
             
             let credential = FacebookAuthProvider.credential(withAccessToken: token)
             
+            DispatchQueue.main.async {
+            self.spinner.show(in: self.view)
+            }
             
             DatabaseManager.shared.checkIsEmailExisted(with: email) { (success) in
                 if !success{
@@ -331,6 +342,7 @@ extension LoginViewController: LoginButtonDelegate {
                                 return
                             }
                             print("Succesfully logged user in")
+                            strongSelf.spinner.dismiss()
                             strongSelf.dismiss(animated: true, completion: nil)
                         }
                         
@@ -343,6 +355,7 @@ extension LoginViewController: LoginButtonDelegate {
                             return
                         }
                         print("Succesfully logged user in")
+                        strongSelf.spinner.dismiss()
                         strongSelf.dismiss(animated: true, completion: nil)
                     }
                     

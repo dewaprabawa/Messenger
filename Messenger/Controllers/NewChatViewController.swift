@@ -2,7 +2,7 @@
 //  NewChatViewController.swift
 //  Messenger
 //
-//  Created by Dewa Prabawa on 28/08/20.
+//  Created by Dewa Prabawa on 01/09/20.
 //  Copyright © 2020 Dewa Prabawa. All rights reserved.
 //
 
@@ -10,21 +10,65 @@ import UIKit
 
 class NewChatViewController: UIViewController {
 
+    private var searchBar: UISearchBar = {
+        let searchBar = UISearchBar()
+        searchBar.placeholder = "Search for users..."
+        return searchBar
+    }()
+    
+    private var tableView: UITableView = {
+        let table = UITableView()
+        table.register(UITableViewCell.self, forCellReuseIdentifier: "cell")
+        table.translatesAutoresizingMaskIntoConstraints = false
+        return table
+    }()
+    
     override func viewDidLoad() {
         super.viewDidLoad()
-
+        searchBar.delegate = self
+       
+        navigationItem.rightBarButtonItem = UIBarButtonItem(title: "cancel", style: .done, target:self, action: #selector(dismissSelf))
+        navigationController?.navigationBar.topItem?.titleView = searchBar
         // Do any additional setup after loading the view.
+        view.backgroundColor = .white
+        tableviewSetups()
+         searchBar.becomeFirstResponder()
     }
     
-
-    /*
-    // MARK: - Navigation
-
-    // In a storyboard-based application, you will often want to do a little preparation before navigation
-    override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
-        // Get the new view controller using segue.destination.
-        // Pass the selected object to the new view controller.
+    private func tableviewSetups(){
+        view.addSubview(tableView)
+        tableView.delegate = self
+        tableView.dataSource = self
+        NSLayoutConstraint.activate([
+            tableView.topAnchor.constraint(equalTo: view.topAnchor),
+            tableView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            tableView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            tableView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+        ])
     }
-    */
+    
+    @objc private func dismissSelf(){
+        self.dismiss(animated: true, completion: nil)
+    }
+}
 
+extension NewChatViewController: UISearchBarDelegate {
+    func searchBarSearchButtonClicked(_ searchBar: UISearchBar) {
+        
+    }
+}
+
+
+extension NewChatViewController: UITableViewDelegate, UITableViewDataSource {
+    
+    func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
+        0
+    }
+    
+    func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
+        let cell = tableView.dequeueReusableCell(withIdentifier: "cell", for: indexPath)
+        return cell
+    }
+    
+    
 }
