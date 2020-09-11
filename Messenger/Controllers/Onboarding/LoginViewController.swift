@@ -61,8 +61,9 @@ class LoginViewController: UIViewController {
         textfield.layer.cornerRadius = 12
         textfield.layer.borderWidth = 1
         textfield.leftView = UIView(frame: CGRect(x: 0, y: 0, width: 20, height: 0))
+        textfield.leftViewMode = UITextField.ViewMode.always
         textfield.layer.borderColor = UIColor.lightGray.cgColor
-        textfield.placeholder = "  Email Address..."
+        textfield.placeholder = "Email Address..."
         return textfield
     }()
     
@@ -75,8 +76,9 @@ class LoginViewController: UIViewController {
         textfield.layer.cornerRadius = 12
         textfield.layer.borderWidth = 1
         textfield.leftView = UIView(frame: CGRect(x: 0, y: 0, width: 20, height: 0))
+        textfield.leftViewMode = UITextField.ViewMode.always
         textfield.layer.borderColor = UIColor.lightGray.cgColor
-        textfield.placeholder = "  Password..."
+        textfield.placeholder = "Password..."
         return textfield
     }()
     
@@ -246,6 +248,7 @@ class LoginViewController: UIViewController {
         
     }
     
+    
     @objc private func didTapLogin(){
         emailFeild.resignFirstResponder()
         passwordFeild.resignFirstResponder()
@@ -256,12 +259,16 @@ class LoginViewController: UIViewController {
                 return
         }
         
+
         spinner.show(in: view)
         
         AuthManager.shared.loginUser(email: email, password: password) { (success) in
             if success {
                 self.spinner.dismiss()
                 self.dismiss(animated: true, completion: nil)
+            }else{
+                self.spinner.dismiss()
+                self.actionController(with: "Sorry", show: "You have not registered yet!")
             }
         }
     }
@@ -301,9 +308,8 @@ extension LoginViewController: UITextFieldDelegate {
 extension LoginViewController: LoginButtonDelegate {
     
     func loginButtonDidLogOut(_ loginButton: FBLoginButton) {
-        ///
+        /// log out
     }
-    
     
     func loginButton(_ loginButton: FBLoginButton, didCompleteWith result: LoginManagerLoginResult?, error: Error?) {
         guard let token = result?.token?.tokenString else {
@@ -311,6 +317,7 @@ extension LoginViewController: LoginButtonDelegate {
             return
         }
         
+        ///Requesting user detail in facebook account
         let facebookRequest = FBSDKLoginKit.GraphRequest(graphPath: "me", parameters: ["fields":"email,name, picture.type(large)"], tokenString: token, version: nil, httpMethod: .get)
         
         facebookRequest.start { (connection, result, error) in
@@ -319,13 +326,15 @@ extension LoginViewController: LoginButtonDelegate {
                     return
             }
             
-            
             guard let name = result["name"] as? String, let email = result["email"] as? String, let picture = result["picture"] as? [String:Any], let data = picture["data"] as? [String: Any], let url = data["url"] as? String, let validURL = URL(string: url) else {
                 print("failed take name and email in facebook")
                 return
             }
             
+            ///persists the email with userdefaults
+            UserDefaults.standard.set(email, forKey: "email")
             
+    
             let credential = FacebookAuthProvider.credential(withAccessToken: token)
             
             DispatchQueue.main.async {
@@ -343,7 +352,8 @@ extension LoginViewController: LoginButtonDelegate {
                             return
                         }
                         print("Succesfully logged user in")
-                        
+                        strongSelf.spinner.dismiss()
+                        strongSelf.dismiss(animated: true, completion: nil)
                     }
                     
                     DatabaseManager.shared.insertIntoDatabase(with: ChatAppUser(username: name, email: email)) { (success) in
@@ -354,8 +364,6 @@ extension LoginViewController: LoginButtonDelegate {
                                print("checking the url :\(validURL)")
                                 
                                 guard let data = data else { return }
-                                
-  
                                 
                                 let filename = "\(email.safeDatabaseKey())_profile_picture.png"
                                 

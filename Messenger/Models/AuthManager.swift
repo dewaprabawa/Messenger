@@ -10,6 +10,7 @@ import FirebaseAuth
 import FBSDKLoginKit
 import GoogleSignIn
 
+
 public enum errorDescription:Error{
     case emailAlreadyExisted
     case failedToInsertDataToDatabase
@@ -32,11 +33,16 @@ public class AuthManager {
             /// if no email register proceed to auth proccesss
             
             if !isExist {
+                
                 FirebaseAuth.Auth.auth().createUser(withEmail: email, password: password) { (authRes, error) in
                     guard authRes != nil, error == nil else{
                         completion(false, .failedToAuth)
                         return
                     }
+                    
+                    
+                    ///persists the email with userdefaults
+                    UserDefaults.standard.set(email, forKey: "email")
                     
                     DatabaseManager.shared.insertIntoDatabase(with: ChatAppUser(username: username, email: email)){(success) in
                         if success {
@@ -65,6 +71,11 @@ public class AuthManager {
                 completion(false)
                 return
             }
+            
+            if let usermail = authRes?.user.email {
+                let safeEmail = DatabaseManager.shared.safeEmail(safe:  usermail)
+                UserDefaults.standard.set(safeEmail, forKey: "email")
+            }
             completion(true)
         }
     }
@@ -76,11 +87,12 @@ public class AuthManager {
         FBSDKLoginKit.LoginManager().logOut()
         
         ///Google sign out
-        
         GIDSignIn.sharedInstance()?.signOut()
+   
         
         do{
            try FirebaseAuth.Auth.auth().signOut()
+       
             completion(true)
             return
         }catch{

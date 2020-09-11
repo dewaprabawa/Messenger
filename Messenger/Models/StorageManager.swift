@@ -8,12 +8,20 @@
 
 import FirebaseStorage
 
+public enum StorageError:Error{
+    case failedToUpload
+    case failedToDownloadURL
+}
+
+
 class StorageManager {
     static var shared = StorageManager()
     
     private var storage = Storage.storage().reference()
     
-    typealias uploadPictureCompletion = (Result<String, Error>) -> Void
+    typealias uploadPictureCompletion = (Result<String, StorageError>) -> Void
+    typealias downloadPictureCompletion = (Result<URL, StorageError>) -> Void
+
     
 }
 
@@ -29,18 +37,14 @@ extension StorageManager {
             
             guard error == nil else {
                 print("failed to upload image to firebase")
-                if let error = error {
-                  completion(.failure(error))
-                }
+                completion(.failure(.failedToUpload))
                 return
             }
             
             strongSelf.storage.child("image/\(filename)").downloadURL { (url, error) in
-                guard let url = url else {
+                guard let url = url, error == nil else {
                     print("Failed to get download URL")
-                    if let error = error {
-                        completion(.failure(error))
-                    }
+                    completion(.failure(.failedToDownloadURL))
                     return
                 }
                 
@@ -51,5 +55,19 @@ extension StorageManager {
             
         }
     }
+    
+    /// Download URL helper to fetch image profile
+    public func downloadURL(with path:String, completion:@escaping downloadPictureCompletion){
+        let ref = storage.child(path)
+        
+        ref.downloadURL { (url, error) in
+            guard let url = url, error == nil else {
+                completion(.failure(.failedToDownloadURL))
+                return
+            }
+            completion(.success(url))
+        }
+    }
+
 
 }

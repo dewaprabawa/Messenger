@@ -39,6 +39,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate, GIDSignInDelegate {
         return GIDSignIn.sharedInstance().handle(url)
     }
     
+    /// Sign in with google
     func sign(_ signIn: GIDSignIn!, didSignInFor user: GIDGoogleUser!, withError error: Error!) {
         guard error == nil else {
             if let error = error {
@@ -51,6 +52,11 @@ class AppDelegate: UIResponder, UIApplicationDelegate, GIDSignInDelegate {
             let name = user.profile.name else {
                 return
         }
+        
+        
+        ///persists the email with userdefaults
+        UserDefaults.standard.set(email, forKey: "email")
+        
         
         guard let authentication = user.authentication else {
             print("missing auth object off of google user")

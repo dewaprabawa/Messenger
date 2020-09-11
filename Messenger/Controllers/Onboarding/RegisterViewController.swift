@@ -7,6 +7,7 @@
 //
 
 import UIKit
+import FirebaseAuth
 import JGProgressHUD
 
 class RegisterViewController: UIViewController {
@@ -28,7 +29,7 @@ class RegisterViewController: UIViewController {
     private let ProfilePicture: UIImageView = {
         let img = UIImageView()
         img.translatesAutoresizingMaskIntoConstraints = false
-        img.layer.cornerRadius = 10
+        img.layer.cornerRadius = 50
         img.image = UIImage(systemName: "person.circle")
         img.tintColor = .darkGray
         img.layer.masksToBounds = true
@@ -72,8 +73,9 @@ class RegisterViewController: UIViewController {
         textfield.layer.cornerRadius = 12
         textfield.layer.borderWidth = 1
         textfield.leftView = UIView(frame: CGRect(x: 0, y: 0, width: 20, height: 0))
+        textfield.leftViewMode = UITextField.ViewMode.always
         textfield.layer.borderColor = UIColor.lightGray.cgColor
-        textfield.placeholder = "  Email Address..."
+        textfield.placeholder = "Email Address..."
         return textfield
     }()
     
@@ -86,8 +88,9 @@ class RegisterViewController: UIViewController {
         textfield.layer.cornerRadius = 12
         textfield.layer.borderWidth = 1
         textfield.leftView = UIView(frame: CGRect(x: 0, y: 0, width: 20, height: 0))
+        textfield.leftViewMode = UITextField.ViewMode.always
         textfield.layer.borderColor = UIColor.lightGray.cgColor
-        textfield.placeholder = "  Username..."
+        textfield.placeholder = "Username..."
         return textfield
     }()
     ///Password TextField
@@ -100,8 +103,9 @@ class RegisterViewController: UIViewController {
         textfield.layer.cornerRadius = 12
         textfield.layer.borderWidth = 1
         textfield.leftView = UIView(frame: CGRect(x: 0, y: 0, width: 20, height: 0))
+         textfield.leftViewMode = UITextField.ViewMode.always
         textfield.layer.borderColor = UIColor.lightGray.cgColor
-        textfield.placeholder = "  Password..."
+        textfield.placeholder = "Password..."
         return textfield
     }()
     
@@ -216,7 +220,6 @@ class RegisterViewController: UIViewController {
         
         self.spinner.show(in: self.view)
         
-        
         guard let image = self.ProfilePicture.image,
             let data = image.pngData() else { return }
         
@@ -235,13 +238,15 @@ class RegisterViewController: UIViewController {
                         print(imageURL)
                     case .failure(let error):
                         fatalError("failed download URL \(error)")
-                    default: break
                     }
                 }
-                
-                strongSelf.spinner.dismiss()
-                strongSelf.alertController()
-                strongSelf.dismiss(animated: true, completion: nil)
+                print("CREATING ACCOUNT SUCCESFULL")
+                try? FirebaseAuth.Auth.auth().signOut()
+                DispatchQueue.main.async {
+                    strongSelf.spinner.dismiss()
+                    strongSelf.alertController()
+  
+                }
             }else{
                 strongSelf.spinner.dismiss()
                 strongSelf.actionController(with: "Ups", show: "the email is already taken")
@@ -252,8 +257,10 @@ class RegisterViewController: UIViewController {
     }
     
     private func alertController(){
-        let alertController = UIAlertController(title: "Registered!", message: "Now you can log in", preferredStyle: .alert)
-        alertController.addAction(UIAlertAction(title: "OK", style: .default, handler: nil))
+        let alertController = UIAlertController(title: "Registered!", message: "Now you can log in", preferredStyle: .actionSheet)
+        alertController.addAction(UIAlertAction(title: "OK", style: .default, handler: {_ in
+              self.navigationController?.popViewController(animated: true)
+        }))
         present(alertController, animated: true, completion: nil)
     }
     
@@ -277,7 +284,7 @@ extension RegisterViewController: UITextFieldDelegate {
             emailFeild.becomeFirstResponder()
         }else if textField == emailFeild {
             passwordFeild.becomeFirstResponder()
-        }else if textField == passwordFeild {
+        }else {
             didTapRegister()
         }
         return true

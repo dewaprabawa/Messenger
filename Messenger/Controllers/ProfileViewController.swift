@@ -12,7 +12,6 @@ class ProfileViewController: UIViewController {
     
     @IBOutlet weak var tableview: UITableView!
     
-    
     override func viewDidLoad() {
         super.viewDidLoad()
         
@@ -23,13 +22,72 @@ class ProfileViewController: UIViewController {
         let rightBarButton = UIBarButtonItem(title: "Sign out", style: .done, target: self, action: #selector(alertLogOutController))
         self.navigationItem.rightBarButtonItem = rightBarButton
         
-        setupTableviews()
+        ///Setups
+         setupTableviews()
+        
+        if !UserDefaults.standard.bool(forKey: "setups"){
+            UserDefaults.standard.set(true, forKey: "setups")
+            UserDefaults.standard.set(nil, forKey: "email")
+        }
     }
+
     
     private func setupTableviews(){
         tableview.delegate = self
         tableview.dataSource = self
         tableview.register(UITableViewCell.self, forCellReuseIdentifier: "cell")
+        tableview.tableHeaderView = generateTableViewHeader()
+    }
+    
+    private func generateTableViewHeader() -> UIView?{
+        
+        guard let email = UserDefaults.standard.value(forKey: "email") as? String else {
+            return nil
+        }
+        
+        let safeEmail = DatabaseManager.shared.safeEmail(safe: email)
+        
+        let fileName = safeEmail + "_profile_picture.png"
+        
+        let path = "image/"+fileName
+        
+        let header = UIView(frame: CGRect(x: 0, y: 0, width: self.view.frame.width, height: 300))
+        
+        header.backgroundColor = .systemGreen
+        
+        let imageView = UIImageView(frame: CGRect(x: (header.frame.width-150)/2, y: 75, width: 150, height: 150))
+        
+        imageView.contentMode = .scaleAspectFill
+        imageView.backgroundColor = .white
+        imageView.layer.borderColor = UIColor.white.cgColor
+        imageView.layer.borderWidth = 2
+        imageView.layer.cornerRadius = 75.0
+        imageView.layer.masksToBounds = true
+        header.addSubview(imageView)
+        
+        StorageManager.shared.downloadURL(with: path) { (result) in
+            switch(result){
+            case .success(let url):
+                self.getURLdownload(with: imageView, and: url)
+            case .failure(let err):
+                print(err)
+            }
+        }
+        
+        return header
+    }
+    
+    
+    private func getURLdownload(with image: UIImageView, and url:URL){
+        URLSession.shared.dataTask(with: url) { (data, _, err) in
+            guard let data = data, err == nil else {
+                return
+            }
+            DispatchQueue.main.async {
+                let imageData = UIImage(data: data)
+                image.image = imageData
+            }
+        }.resume()
     }
     
     @objc private func alertLogOutController(){
@@ -45,8 +103,14 @@ class ProfileViewController: UIViewController {
         AuthManager.shared.signOutUser{(success) in
             DispatchQueue.main.async {
                 if success {
+                    
+                    UserDefaults.standard.set(nil, forKey: "email")
+                    
                     let vc = LoginViewController()
                     let nav = UINavigationController(rootViewController: vc)
+                    
+                    let tabbar = self.tabBarController
+                    tabbar?.selectedIndex = 0
                     nav.modalPresentationStyle = .fullScreen
                     self.present(nav, animated: true, completion: nil)
                 }else{

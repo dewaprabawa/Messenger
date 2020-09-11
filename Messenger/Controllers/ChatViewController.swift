@@ -49,8 +49,21 @@ class ChatViewController: UIViewController {
     }
     
     @objc private func addNewChat(){
-        let nav = UINavigationController(rootViewController: NewChatViewController())
+        let vc = NewChatViewController()
+        vc.completion = { [weak self] result in
+            guard let strongSelf = self else { return }
+            strongSelf.createNewChat(result: result)
+        }
+        let nav = UINavigationController(rootViewController: vc)
         present(nav, animated: true, completion: nil)
+    }
+    
+    private func createNewChat(result: [String:String]){
+        guard let username = result["username"], let email = result["email"] else { return }
+        let vc = ChatToConversationViewController(with: email)
+        vc.isNewConversation = true
+        vc.title = username
+        navigationController?.pushViewController(vc, animated: true)
     }
     
     private func tableviewSetups(){
@@ -60,7 +73,7 @@ class ChatViewController: UIViewController {
     
     private func addSubviews(){
        view.addSubview(tableView)
-        view.addSubview(noChatLabel)
+       view.addSubview(noChatLabel)
     }
     
     private func fetchChat(){
@@ -105,7 +118,7 @@ extension ChatViewController: UITableViewDelegate, UITableViewDataSource {
     
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         tableView.deselectRow(at: indexPath, animated: true)
-        let vc = ChatToConversationController()
+        let vc = ChatToConversationViewController(with: "sda@gmail.com")
         navigationController?.pushViewController(vc, animated: true)
     }
 }
