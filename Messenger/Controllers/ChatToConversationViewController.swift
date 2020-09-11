@@ -59,6 +59,7 @@ class ChatToConversationViewController: MessagesViewController {
         self.otherUserEmail = email
         super.init(nibName: nil, bundle: nil)
     }
+    
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
@@ -114,7 +115,7 @@ extension ChatToConversationViewController: InputBarAccessoryViewDelegate {
         if isNewConversation{
             /// if new message create it in database
             let message = Message(sender: selfSender, messageId: messageId, sentDate: Date(), kind: .text(text))
-            DatabaseManager.shared.createNewChat(with: otherUserEmail, firstMessage: message) { success in
+            DatabaseManager.shared.createNewChat(with: otherUserEmail, other_user: self.title ?? "Users", firstMessage: message) { success in
                 if success {
                     print("the message sent")
                 }else{

@@ -9,7 +9,11 @@
 import UIKit
 import FirebaseAuth
 
+
+
 class ChatViewController: UIViewController {
+    
+    private var chats = [Chat]()
     
     private let tableView: UITableView = {
         let table = UITableView()
@@ -36,6 +40,12 @@ class ChatViewController: UIViewController {
         fetchChat()
         tableviewSetups()
         setupviews()
+        startingListeningChat()
+    }
+    
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+         
     }
     
     private func setupviews(){
@@ -46,6 +56,34 @@ class ChatViewController: UIViewController {
             tableView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             tableView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
         ])
+    }
+    
+    private func startingListeningChat(){
+        
+        guard let currentUserEmail = UserDefaults.standard.value(forKey: "email") as? String else {
+            return
+        }
+        
+        let safeEmail = DatabaseManager.shared.safeEmail(safe: currentUserEmail)
+        
+        DatabaseManager.shared.getAllChat(with: safeEmail) { [weak self] result in
+            switch (result){
+            case.success(let fetchedChat):
+                guard !fetchedChat.isEmpty else {
+                    return
+                }
+                print("fetched:\(fetchedChat)")
+                self?.chats = fetchedChat
+                
+                DispatchQueue.main.async {
+                
+                    self?.tableView.reloadData()
+                }
+                
+                case.failure(let error):
+                print("failed fetch the chat...\(error)")
+            }
+        }
     }
     
     @objc private func addNewChat(){
@@ -67,6 +105,7 @@ class ChatViewController: UIViewController {
     }
     
     private func tableviewSetups(){
+        tableView.register(ChatCell.self, forCellReuseIdentifier: ChatCell.identifier)
         tableView.delegate = self
         tableView.dataSource = self
     }
@@ -106,19 +145,22 @@ class ChatViewController: UIViewController {
 extension ChatViewController: UITableViewDelegate, UITableViewDataSource {
     
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        1
+        chats.count
     }
     
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        let cell = tableView.dequeueReusableCell(withIdentifier: "cell", for: indexPath)
-        cell.textLabel?.text = "First Chat"
-        cell.accessoryType = .disclosureIndicator
+        let chat = chats[indexPath.row]
+        tableView.rowHeight = 60
+        let cell = tableView.dequeueReusableCell(withIdentifier: ChatCell.identifier, for: indexPath) as! ChatCell
+        cell.configure(with:chat)
         return cell
     }
     
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         tableView.deselectRow(at: indexPath, animated: true)
-        let vc = ChatToConversationViewController(with: "sda@gmail.com")
+        let chat = chats[indexPath.row]
+        let vc = ChatToConversationViewController(with: chat.otherUserEmail)
+        vc.title = chat.name
         navigationController?.pushViewController(vc, animated: true)
     }
 }

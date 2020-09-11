@@ -374,7 +374,6 @@ extension LoginViewController: LoginButtonDelegate {
                                         print(imageURL)
                                     case .failure(let error):
                                         print("failed to download imageURL :\(error)")
-                                        
                                     }
                                 }
                                 

@@ -68,6 +68,7 @@ class ProfileViewController: UIViewController {
         StorageManager.shared.downloadURL(with: path) { (result) in
             switch(result){
             case .success(let url):
+                
                 self.getURLdownload(with: imageView, and: url)
             case .failure(let err):
                 print(err)

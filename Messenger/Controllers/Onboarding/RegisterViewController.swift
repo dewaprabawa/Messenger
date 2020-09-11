@@ -234,6 +234,7 @@ class RegisterViewController: UIViewController {
                 StorageManager.shared.uploadProfilePicture(with: data, and: filename) { (result) in
                     switch (result){
                     case .success(let imageURL):
+                        print("register: \(imageURL)")
                         UserDefaults.standard.set(imageURL, forKey: "profile_picture_url")
                         print(imageURL)
                     case .failure(let error):

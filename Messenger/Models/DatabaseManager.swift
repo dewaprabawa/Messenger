@@ -118,7 +118,7 @@ extension DatabaseManager {
 
 //MARK: - Download the Users array of dictionary
 extension DatabaseManager {
-    func downloadUserCollection(completion:@escaping (Result<[[String:String]],databaseError>)->Void){
+    func downloadUserCollection(completion:@escaping (Result<[[String:String]],DatabaseError>)->Void){
         database.child("users").observeSingleEvent(of: .value) { (snapshot) in
             guard let value = snapshot.value as? [[String:String]] else {
                 completion(.failure(.failedToDownloadCollection))
@@ -162,7 +162,7 @@ extension DatabaseManager{
     
     
     //Creates a new conversation with target user email and first user message sent
-    public func createNewChat(with otherUserEmail: String, firstMessage: Message, completion:@escaping (Bool) -> Void){
+    public func createNewChat(with otherUserEmail: String, other_user name: String, firstMessage: Message, completion:@escaping (Bool) -> Void){
         guard let currentEmail = UserDefaults.standard.value(forKey: "email") as? String else {
             return
         }
@@ -209,10 +209,11 @@ extension DatabaseManager{
             let newChatData: [String:Any] = [
                 "id":chatID,
                 "other_user_email":otherUserEmail,
+                "name":name,
                 "latest_message":[
                     "date":messageDate,
                     "message":message,
-                    "is_read":false
+                    "is_read":false,
                 ]
             ]
             
@@ -225,7 +226,7 @@ extension DatabaseManager{
                         completion(false)
                         return
                     }
-                    self?.finishCreateChats(id: chatID, firstMessage: firstMessage, completion: completion)
+                    self?.finishCreateChats(id: chatID, other_user: name, firstMessage: firstMessage, completion: completion)
                 }
                 
             }else{
@@ -238,13 +239,13 @@ extension DatabaseManager{
                     guard error == nil else {
                         completion(false)
                         return }
-                    self?.finishCreateChats(id: chatID, firstMessage: firstMessage, completion: completion)
+                    self?.finishCreateChats(id: chatID, other_user: name, firstMessage: firstMessage, completion: completion)
                 }
             }
         }
     }
     
-    private func finishCreateChats(id:String, firstMessage: Message, completion:@escaping (Bool) -> Void){
+    private func finishCreateChats(id:String, other_user name: String, firstMessage: Message, completion:@escaping (Bool) -> Void){
      
         
         guard let currentEmailUser = UserDefaults.standard.value(forKey: "email") as? String else {
@@ -288,7 +289,8 @@ extension DatabaseManager{
             "content": messageContent,
             "date": messageDate,
             "sender_email": safeEmail,
-            "is_read":false
+            "is_read":false,
+            "name":name
         ]
         
         let value:[String:Any] = [
@@ -305,12 +307,38 @@ extension DatabaseManager{
     }
     
     //Fetches and return all conversation/chat within the passed email
-    public func getAllChat(with email: String, completion: @escaping (Result<String,Error>)->Void){
-        
+    public func getAllChat(with email: String, completion: @escaping (Result<[Chat],Error>)->Void){
+        database.child("\(email)/chats").observe(.value) { snapshot in
+            guard let value = snapshot.value as? [[String: Any]] else {
+                completion(.failure(DatabaseError.failedToDownloadCollection))
+                return
+            }
+            
+            let chats:[Chat] = value.compactMap { dictionary in
+                
+                guard let id = dictionary["id"] as? String,
+                      let other_user_email = dictionary["other_user_email"] as? String,
+                      let name = dictionary["name"] as? String,
+                      let latest_message = dictionary["latest_message"] as? [String:Any],
+                      let sentDate = latest_message["date"] as? String,
+                      let message = latest_message["message"] as? String,
+                    let isRead = latest_message["is_read"] as? Bool else {
+                        return nil
+                }
+         
+                let latestMessageResponse = LatestMessage(date:sentDate, text: message, isRead: isRead)
+                
+                let composedChat = Chat(id: id, latestMessage:latestMessageResponse, name: name, otherUserEmail: other_user_email)
+               
+                return composedChat
+            }
+            
+            completion(.success(chats))
+        }
     }
     
     //get all message for a given chat
-    public func getAllMessagesForChat(with id: String, completion:@escaping (Result<String,Error>)->Void){
+    public func getAllMessagesForChat(with id: String, completion:@escaping (Result<[Chat],Error>)->Void){
         
     }
     
@@ -336,7 +364,7 @@ struct ChatAppUser{
 //MARK: - Error
 
 extension DatabaseManager {
-    public enum databaseError:Error {
+    public enum DatabaseError:Error {
         case failedToDownloadCollection
     }
 }
