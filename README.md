@@ -1,15 +1,14 @@
 
 # MESSENGER FIREBASE CLONE
 
-* This demo application show simple real-time chat building from Firebase (https://firebase.google.com) that was release in iOS 13. As a bonus, I've decided to make prettier UI.
+* This demo application show simple real-time chat building from Firebase (https://firebase.google.com) that was released in iOS 13. As a bonus, I've decided to make prettier UI.
 
 ## Techniques implemented:
 * UITableView
-* UICollectionView
 * Storyboard UI builder
 * Design Material
-* CoreData
-* URLsession
+* Realms
+* Firebase
 
 ## Firebase API
 * https://firebase.google.com
