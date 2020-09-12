@@ -9,7 +9,7 @@
 import UIKit
 import SDWebImage
 
-class ChatCell: UITableViewCell {
+class ChatCell: UICollectionViewCell {
     
     static var identifier = "ChatCell"
     
@@ -59,8 +59,8 @@ class ChatCell: UITableViewCell {
         }
     }
     
-    override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
-        super.init(style: style, reuseIdentifier: reuseIdentifier)
+    override init(frame: CGRect) {
+        super.init(frame: frame)
         addSubviews()
     }
     

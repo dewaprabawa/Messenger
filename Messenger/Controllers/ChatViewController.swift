@@ -15,12 +15,7 @@ class ChatViewController: UIViewController {
     
     private var chats = [Chat]()
     
-    private let tableView: UITableView = {
-        let table = UITableView()
-        table.register(UITableViewCell.self, forCellReuseIdentifier: "cell")
-        table.translatesAutoresizingMaskIntoConstraints = false
-        return table
-    }()
+    private var chatViewsCollectionView: UICollectionView?
     
     private let noChatLabel: UILabel = {
         let label = UILabel()
@@ -38,25 +33,40 @@ class ChatViewController: UIViewController {
         self.navigationItem.rightBarButtonItem = UIBarButtonItem(barButtonSystemItem: .add, target: self, action: #selector(addNewChat))
         addSubviews()
         fetchChat()
-        tableviewSetups()
-        setupviews()
         startingListeningChat()
     }
     
-    override func viewWillAppear(_ animated: Bool) {
-        super.viewWillAppear(animated)
-         
-    }
-    
-    private func setupviews(){
+    private func collectionviewSetups(){
+        let layout = UICollectionViewFlowLayout()
+        layout.sectionInset = UIEdgeInsets(top: 0, left: 0, bottom: 0, right: 0)
+        layout.scrollDirection = .vertical
+        chatViewsCollectionView = UICollectionView(frame: .zero, collectionViewLayout: layout)
+        chatViewsCollectionView?.delegate = self
+        chatViewsCollectionView?.dataSource = self
+        chatViewsCollectionView?.register(ChatCell.self, forCellWithReuseIdentifier: ChatCell.identifier)
+        chatViewsCollectionView?.translatesAutoresizingMaskIntoConstraints = false
+        
+        chatViewsCollectionView?.backgroundColor = .systemBackground
+        guard let chatViewCollectionView = chatViewsCollectionView else {
+            return
+        }
+        
+        view.addSubview(chatViewCollectionView)
         
         NSLayoutConstraint.activate([
-            tableView.topAnchor.constraint(equalTo: view.topAnchor),
-            tableView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            tableView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            tableView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+            chatViewCollectionView.topAnchor.constraint(equalTo: view.topAnchor),
+            chatViewCollectionView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            chatViewCollectionView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            chatViewCollectionView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
         ])
     }
+    
+    
+    private func addSubviews(){
+       view.addSubview(noChatLabel)
+       collectionviewSetups()
+    }
+    
     
     private func startingListeningChat(){
         
@@ -70,14 +80,14 @@ class ChatViewController: UIViewController {
             switch (result){
             case.success(let fetchedChat):
                 guard !fetchedChat.isEmpty else {
+                    print("failed fetch chats")
                     return
                 }
                 print("fetched:\(fetchedChat)")
                 self?.chats = fetchedChat
                 
                 DispatchQueue.main.async {
-                
-                    self?.tableView.reloadData()
+                self?.chatViewsCollectionView?.reloadData()
                 }
                 
                 case.failure(let error):
@@ -104,17 +114,6 @@ class ChatViewController: UIViewController {
         navigationController?.pushViewController(vc, animated: true)
     }
     
-    private func tableviewSetups(){
-        tableView.register(ChatCell.self, forCellReuseIdentifier: ChatCell.identifier)
-        tableView.delegate = self
-        tableView.dataSource = self
-    }
-    
-    private func addSubviews(){
-       view.addSubview(tableView)
-       view.addSubview(noChatLabel)
-    }
-    
     private func fetchChat(){
         
     }
@@ -127,7 +126,7 @@ class ChatViewController: UIViewController {
         checkWheterItLoggedIn()
     }
     
-
+    
     private func checkWheterItLoggedIn(){
         
         if FirebaseAuth.Auth.auth().currentUser == nil {
@@ -138,29 +137,34 @@ class ChatViewController: UIViewController {
         }
     }
     
-    
 }
 
 
-extension ChatViewController: UITableViewDelegate, UITableViewDataSource {
+extension ChatViewController: UICollectionViewDataSource, UICollectionViewDelegate, UICollectionViewDelegateFlowLayout {
     
-    func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
+    func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
         chats.count
     }
     
-    func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
+    func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
         let chat = chats[indexPath.row]
-        tableView.rowHeight = 60
-        let cell = tableView.dequeueReusableCell(withIdentifier: ChatCell.identifier, for: indexPath) as! ChatCell
+        let cell = collectionView.dequeueReusableCell(withReuseIdentifier: ChatCell.identifier, for: indexPath) as! ChatCell
+        cell.backgroundColor = .systemGreen
         cell.configure(with:chat)
         return cell
     }
     
-    func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
-        tableView.deselectRow(at: indexPath, animated: true)
+    func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
+        collectionView.deselectItem(at: indexPath, animated: true)
         let chat = chats[indexPath.row]
         let vc = ChatToConversationViewController(with: chat.otherUserEmail)
         vc.title = chat.name
         navigationController?.pushViewController(vc, animated: true)
     }
+    
+    func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, sizeForItemAt indexPath: IndexPath) -> CGSize {
+        return .init(width: view.frame.width, height: 70)
+    }
+    
+    
 }
