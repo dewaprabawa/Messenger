@@ -53,11 +53,16 @@ struct Sender:SenderType {
 class ChatToConversationViewController: MessagesViewController {
 
     public let otherUserEmail:String
+    private let chatid: String?
     public var isNewConversation = false
     
-    init(with email:String){
+    init(with email:String, id: String?){
         self.otherUserEmail = email
+        self.chatid = id
         super.init(nibName: nil, bundle: nil)
+        if let chatId = chatid {
+            listenForMessages(id: chatId)
+        }
     }
     
     required init?(coder: NSCoder) {
@@ -97,6 +102,25 @@ class ChatToConversationViewController: MessagesViewController {
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
         messageInputBar.inputTextView.becomeFirstResponder()
+    }
+    
+    private func listenForMessages(id:String){
+        DatabaseManager.shared.getAllMessagesForChat(with: id) { [weak self] result in
+            switch (result){
+            case .failure(let error):
+                print("error occured when download chat: ----\(error)")
+            case .success(let chats):
+                guard !chats.isEmpty else {
+                    return
+                }
+                
+                self?.messages = chats
+                
+                DispatchQueue.main.async {
+                 self?.messagesCollectionView.reloadDataAndKeepOffset()
+                }
+            }
+        }
     }
 
 }
@@ -151,7 +175,6 @@ extension ChatToConversationViewController: MessagesDataSource, MessagesLayoutDe
             return sender
         }
         fatalError("the email should be cached")
-        return Sender(photoURL: "", senderId: "", displayName: "")
     }
     
     func messageForItem(at indexPath: IndexPath, in messagesCollectionView: MessagesCollectionView) -> MessageType {

@@ -294,7 +294,9 @@ extension DatabaseManager{
         ]
         
         let value:[String:Any] = [
-            "messages": message
+            "messages": [
+              message
+            ]
         ]
         
         database.child("\(id)").setValue(value) { (error, _) in
@@ -338,7 +340,33 @@ extension DatabaseManager{
     }
     
     //get all message for a given chat
-    public func getAllMessagesForChat(with id: String, completion:@escaping (Result<[Chat],Error>)->Void){
+    public func getAllMessagesForChat(with id: String, completion:@escaping (Result<[Message],Error>)->Void){
+          print("checking id from getAllMessagesForChat: \(id)")
+        database.child("\(id)/messages").observe(.value) { (snapshot) in
+            
+            guard let value = snapshot.value as? [[String:Any]] else{
+                completion(.failure(DatabaseError.failedToDownloadCollection))
+                return
+            }
+            
+            let messages:[Message] = value.compactMap { (dictionary) in
+                guard let name = dictionary["name"] as? String,
+//                    let isRead = dictionary["is_read"] as? Bool,
+                    let messageID = dictionary["id"] as? String,
+                    let content = dictionary["content"] as? String,
+                    let senderEmail = dictionary["sender_email"] as? String,
+//                    let type = dictionary["type"] as? String,
+                    let dateString = dictionary["date"] as? String,
+                    let date = ChatToConversationViewController.dateFormater.date(from: dateString) else {
+                        return nil
+                }
+                
+                let sender = Sender(photoURL: "", senderId: senderEmail, displayName: name)
+                
+                return Message(sender:sender, messageId: messageID, sentDate: date, kind: .text(content))
+            }
+            completion(.success(messages))
+        }
         
     }
     

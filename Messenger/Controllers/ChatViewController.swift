@@ -83,7 +83,7 @@ class ChatViewController: UIViewController {
                     print("failed fetch chats")
                     return
                 }
-                print("fetched:\(fetchedChat)")
+                print("fetched: \(fetchedChat)")
                 self?.chats = fetchedChat
                 
                 DispatchQueue.main.async {
@@ -108,7 +108,7 @@ class ChatViewController: UIViewController {
     
     private func createNewChat(result: [String:String]){
         guard let username = result["username"], let email = result["email"] else { return }
-        let vc = ChatToConversationViewController(with: email)
+        let vc = ChatToConversationViewController(with: email, id: nil)
         vc.isNewConversation = true
         vc.title = username
         navigationController?.pushViewController(vc, animated: true)
@@ -157,7 +157,7 @@ extension ChatViewController: UICollectionViewDataSource, UICollectionViewDelega
     func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
         collectionView.deselectItem(at: indexPath, animated: true)
         let chat = chats[indexPath.row]
-        let vc = ChatToConversationViewController(with: chat.otherUserEmail)
+        let vc = ChatToConversationViewController(with: chat.otherUserEmail, id: chat.id)
         vc.title = chat.name
         navigationController?.pushViewController(vc, animated: true)
     }
