@@ -130,6 +130,21 @@ extension DatabaseManager {
     }
 }
 
+//MARK: - load username in firebase
+extension DatabaseManager {
+    func getData(with path: String, completion: @escaping (Result<Any,Error>)-> Void){
+        self.database.child("\(path)").observeSingleEvent(of: .value) {snapshot in
+            print(path)
+            guard let value = snapshot.value else {
+                completion(.failure(DatabaseError.failedToDownloadCollection))
+                return
+            }
+            
+            completion(.success(value))
+        }
+    }
+}
+
 //MARK: - Sending Message Database/Conversations
 
 extension DatabaseManager{
@@ -161,13 +176,21 @@ extension DatabaseManager{
            */
     
     
+    
     //Creates a new conversation with target user email and first user message sent
     public func createNewChat(with otherUserEmail: String, other_user name: String, firstMessage: Message, completion:@escaping (Bool) -> Void){
-        guard let currentEmail = UserDefaults.standard.value(forKey: "email") as? String else {
+        guard let currentEmail = UserDefaults.standard.value(forKey: "email") as? String,
+            let currentUsername = UserDefaults.standard.value(forKey: "name") as? String else {
+                print("masih dsini!")
             return
         }
+        
+        print("check :\(currentUsername)")
+        
         let safeEmail = DatabaseManager.shared.safeEmail(safe:currentEmail)
+        
         let ref = database.child("\(safeEmail)")
+        
         ref.observeSingleEvent(of: .value) { [weak self] snapshot in
             guard var snapshot = snapshot.value as? [String:Any] else {
                 print("user not found")
@@ -176,6 +199,7 @@ extension DatabaseManager{
             }
             
             let messageDate = ChatToConversationViewController.dateFormater.string(from: firstMessage.sentDate)
+            
             let messageId = firstMessage.messageId
             
             var message = ""
@@ -217,6 +241,35 @@ extension DatabaseManager{
                 ]
             ]
             
+            let recipient_newChatData: [String:Any] = [
+                "id":chatID,
+                "other_user_email":safeEmail,
+                "name":currentUsername,
+                "latest_message":[
+                    "date":messageDate,
+                    "message":message,
+                    "is_read":false,
+                ]
+            ]
+            
+            /*
+            Update chat for current other-email
+            */
+            self?.database.child("\(otherUserEmail)/chats").observeSingleEvent(of:.value, with: { [weak self] snapshot in
+                if var chats = snapshot.value as? [[String:Any]]{
+                    ///Appends
+                    chats.append(recipient_newChatData)
+                    self?.database.child("\(otherUserEmail)/chats").setValue(chats)
+                }else{
+                    ///Creates
+                    self?.database.child("\(otherUserEmail)/chats").setValue([recipient_newChatData])
+                }
+            })
+            
+            /*
+             Update chat for current user-email
+             */
+            
             if var chats = snapshot["chats"] as? [[String:Any]]{
                 // if the chats existed, should append chat
                 chats.append(newChatData)
@@ -247,7 +300,6 @@ extension DatabaseManager{
     
     private func finishCreateChats(id:String, other_user name: String, firstMessage: Message, completion:@escaping (Bool) -> Void){
      
-        
         guard let currentEmailUser = UserDefaults.standard.value(forKey: "email") as? String else {
             completion(false)
             return
@@ -256,6 +308,7 @@ extension DatabaseManager{
         let safeEmail = currentEmailUser.safeDatabaseKey()
         
         let messageDate = ChatToConversationViewController.dateFormater.string(from: firstMessage.sentDate)
+        
         var messageContent = ""
         
         switch firstMessage.kind {
@@ -311,6 +364,7 @@ extension DatabaseManager{
     //Fetches and return all conversation/chat within the passed email
     public func getAllChat(with email: String, completion: @escaping (Result<[Chat],Error>)->Void){
         database.child("\(email)/chats").observe(.value) { snapshot in
+            
             guard let value = snapshot.value as? [[String: Any]] else {
                 completion(.failure(DatabaseError.failedToDownloadCollection))
                 return
@@ -341,8 +395,8 @@ extension DatabaseManager{
     
     //get all message for a given chat
     public func getAllMessagesForChat(with id: String, completion:@escaping (Result<[Message],Error>)->Void){
-          print("checking id from getAllMessagesForChat: \(id)")
-        database.child("\(id)/messages").observe(.value) { (snapshot) in
+
+            database.child("\(id)/messages").observe(.value) { (snapshot) in
             
             guard let value = snapshot.value as? [[String:Any]] else{
                 completion(.failure(DatabaseError.failedToDownloadCollection))
@@ -371,8 +425,165 @@ extension DatabaseManager{
     }
     
     //Send message with target chat and message
-    public func sendMessages(to conversation:String, message:Message, completion:@escaping (Bool)-> Void){
-        
+    public func sendMessages(to chatId:String,other_user name: String, otheremail:String, message:Message, completion:@escaping (Bool)-> Void){
+    
+        database.child("\(chatId)/messages").observeSingleEvent(of: .value) { [weak self] (snapshot) in
+            guard let strongSelf = self else {
+                return
+            }
+            
+            guard var currentMessage = snapshot.value as? [[String:Any]] else {
+                completion(false)
+                return
+            }
+            
+            guard let currentEmailUser = UserDefaults.standard.value(forKey: "email") as? String else {
+                       completion(false)
+                       return
+                   }
+                   
+                   let safeEmail = currentEmailUser.safeDatabaseKey()
+                   
+                   let messageDate = ChatToConversationViewController.dateFormater.string(from: message.sentDate)
+                   var messageContent = ""
+                   
+                   switch message.kind {
+                       
+                   case .text(let messageText):
+                       messageContent = messageText
+                   case .attributedText(_):
+                       break
+                   case .photo(_):
+                       break
+                   case .video(_):
+                       break
+                   case .location(_):
+                       break
+                   case .emoji(_):
+                       break
+                   case .audio(_):
+                       break
+                   case .contact(_):
+                       break
+                   case .linkPreview(_):
+                       break
+                   case .custom(_):
+                       break
+                   }
+                   
+                   
+                   let message:[String:Any] = [
+                       "id":message.messageId,
+                       "type": message.kind.messageKindString,
+                       "content": messageContent,
+                       "date": messageDate,
+                       "sender_email": safeEmail,
+                       "is_read":false,
+                       "name":name
+                   ]
+            
+                    
+            currentMessage.append(message)
+            
+            strongSelf.database.child("\(chatId)/messages").setValue(currentMessage) { (error, _) in
+                guard error == nil else {
+                    completion(false)
+                    return
+                }
+                
+                
+                ///Updating the latest user chat
+                strongSelf.database.child("\(safeEmail)/chats").observeSingleEvent(of: .value) { (snapshot) in
+                    guard var currentChat = snapshot.value as? [[String:Any]] else {
+                        print("cannot add latest chats")
+                        completion(false)
+                        return
+                    }
+                    
+                    
+                    let updateChat:[String: Any] = [
+                        "date": messageDate,
+                        "is_read": false,
+                        "message":messageContent
+                    ]
+                    
+                    var position = 0
+                    var lastest_message:[String:Any]?
+                    
+                    for chatDictionary in currentChat{
+                        if let _chatId = chatDictionary["id"] as? String, _chatId == chatId {
+                            lastest_message = chatDictionary
+                            break
+                        }
+                        position += 1
+                    }
+                    lastest_message?["latest_message"] = updateChat
+                    guard let final_chat = lastest_message else {
+                        completion(false)
+                        return
+                    }
+                    
+                    currentChat[position] = final_chat
+                    
+                    strongSelf.database.child("\(safeEmail)/chats").setValue(currentChat) { (error, _) in
+                        guard error == nil else {
+                            completion(false)
+                            return
+                        }
+                        
+                        ///Updating other user chat
+                        strongSelf.database.child("\(otheremail)/chats").observeSingleEvent(of: .value) { (snapshot) in
+                        guard var currentChat = snapshot.value as? [[String:Any]] else {
+                            print("cannot add latest chats")
+                            completion(false)
+                            return
+                        }
+                        
+                        
+                        let updateChat:[String: Any] = [
+                            "date": messageDate,
+                            "is_read": false,
+                            "message":messageContent
+                        ]
+                        
+                        var position = 0
+                        var lastest_message:[String:Any]?
+                        
+                        for chatDictionary in currentChat{
+                            if let _chatId = chatDictionary["id"] as? String, _chatId == chatId {
+                                lastest_message = chatDictionary
+                                break
+                            }
+                            position += 1
+                        }
+                        lastest_message?["latest_message"] = updateChat
+                        guard let final_chat = lastest_message else {
+                            completion(false)
+                            return
+                        }
+                        
+                        currentChat[position] = final_chat
+                        
+                        strongSelf.database.child("\(otheremail)/chats").setValue(currentChat) { (error, _) in
+                            guard error == nil else {
+                                completion(false)
+                                return
+                            }
+                            
+                            ///Updating other user chat
+                            
+                            
+                            completion(true)
+                        }
+                     
+                    }
+                    
+                }
+            }
+            
+        }
+       
+      }
     }
     
 }

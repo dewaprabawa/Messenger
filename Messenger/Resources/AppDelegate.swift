@@ -53,8 +53,22 @@ class AppDelegate: UIResponder, UIApplicationDelegate, GIDSignInDelegate {
                 return
         }
         
-        
-        ///persists the email with userdefaults
+        let safeEmail = email.safeDatabaseKey()
+        DatabaseManager.shared.getData(with: safeEmail) { (result) in
+            switch result {
+            case .failure(let error):
+                print("failed to download the snapshot :\(error)")
+            case .success(let data):
+                guard let data = data as? [String: Any],
+                    let username = data["username"] as? String else {
+                    return
+                }
+                print("check from app delegate: \(username)")
+                ///persists the email & email with userdefaults
+                UserDefaults.standard.set(username, forKey: "name")
+            }
+        }
+        ///persists the email & email with userdefaults
         UserDefaults.standard.set(email, forKey: "email")
         
         

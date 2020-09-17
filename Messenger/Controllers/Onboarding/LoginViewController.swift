@@ -262,6 +262,20 @@ class LoginViewController: UIViewController {
 
         spinner.show(in: view)
         
+        DatabaseManager.shared.getData(with: "\(email.safeDatabaseKey())") { (result) in
+            switch result {
+            case .failure(let error):
+                print("failed to get username :\(error)")
+            case .success(let data):
+                guard let data = data as? [String: Any], let username = data["username"] else {
+                    return
+                }
+                UserDefaults.standard.set(username, forKey: "name")
+                print("success save username!")
+            }
+        }
+        
+        
         AuthManager.shared.loginUser(email: email, password: password) { (success) in
             if success {
                 self.spinner.dismiss()
@@ -331,9 +345,9 @@ extension LoginViewController: LoginButtonDelegate {
                 return
             }
             
-            ///persists the email with userdefaults
+            ///persists the email & username with userdefaults
             UserDefaults.standard.set(email, forKey: "email")
-            
+            UserDefaults.standard.set(name, forKey: "name")
     
             let credential = FacebookAuthProvider.credential(withAccessToken: token)
             

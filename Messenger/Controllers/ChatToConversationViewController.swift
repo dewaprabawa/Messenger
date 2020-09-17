@@ -60,9 +60,6 @@ class ChatToConversationViewController: MessagesViewController {
         self.otherUserEmail = email
         self.chatid = id
         super.init(nibName: nil, bundle: nil)
-        if let chatId = chatid {
-            listenForMessages(id: chatId)
-        }
     }
     
     required init?(coder: NSCoder) {
@@ -102,9 +99,12 @@ class ChatToConversationViewController: MessagesViewController {
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
         messageInputBar.inputTextView.becomeFirstResponder()
+        if let chatId = chatid {
+            listenForMessages(id: chatId, isScrollToBottom: true)
+        }
     }
     
-    private func listenForMessages(id:String){
+    private func listenForMessages(id:String, isScrollToBottom:Bool){
         DatabaseManager.shared.getAllMessagesForChat(with: id) { [weak self] result in
             switch (result){
             case .failure(let error):
@@ -118,11 +118,15 @@ class ChatToConversationViewController: MessagesViewController {
                 
                 DispatchQueue.main.async {
                  self?.messagesCollectionView.reloadDataAndKeepOffset()
+                    
+                    if isScrollToBottom {
+                        self?.messagesCollectionView.scrollToBottom()
+                    }
+                    
                 }
             }
         }
     }
-
 }
 
 extension ChatToConversationViewController: InputBarAccessoryViewDelegate {
@@ -132,25 +136,37 @@ extension ChatToConversationViewController: InputBarAccessoryViewDelegate {
             let messageId = createMessageId() else {
             return
         }
+  
+        let message = Message(sender: selfSender, messageId: messageId, sentDate: Date(), kind: .text(text))
         
-        print("this is text:\(text)")
         
         //MARK:- Send message
         if isNewConversation{
             /// if new message create it in database
-            let message = Message(sender: selfSender, messageId: messageId, sentDate: Date(), kind: .text(text))
-            DatabaseManager.shared.createNewChat(with: otherUserEmail, other_user: self.title ?? "Users", firstMessage: message) { success in
+            DatabaseManager.shared.createNewChat(with: otherUserEmail, other_user: self.title ?? "Users", firstMessage: message) {[weak self] success in
                 if success {
                     print("the message sent")
+                    self?.isNewConversation = false
                 }else{
-                    print("th message failed sent")
+                    print("the message failed sent")
                 }
             }
             
             
         }else{
-            /// if not then just append it in database
-            print("this not new chat")
+            
+            guard let chatId = chatid else{
+                return
+            }
+            /// if not then just append it in databas
+            DatabaseManager.shared.sendMessages(to: chatId, other_user: self.title ?? "Unknown", otheremail: otherUserEmail, message: message) { (isSent) in
+                print(isSent)
+                if isSent {
+                    print("the message sent")
+                }else {
+                    print("the message failed to sent")
+                }
+            }
         }
     }
     
