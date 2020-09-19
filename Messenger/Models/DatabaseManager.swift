@@ -181,11 +181,9 @@ extension DatabaseManager{
     public func createNewChat(with otherUserEmail: String, other_user name: String, firstMessage: Message, completion:@escaping (Bool) -> Void){
         guard let currentEmail = UserDefaults.standard.value(forKey: "email") as? String,
             let currentUsername = UserDefaults.standard.value(forKey: "name") as? String else {
-                print("masih dsini!")
             return
         }
         
-        print("check :\(currentUsername)")
         
         let safeEmail = DatabaseManager.shared.safeEmail(safe:currentEmail)
         
@@ -533,7 +531,7 @@ extension DatabaseManager{
                         
                         ///Updating other user chat
                         strongSelf.database.child("\(otheremail)/chats").observeSingleEvent(of: .value) { (snapshot) in
-                        guard var currentChat = snapshot.value as? [[String:Any]] else {
+                        guard var otherChat = snapshot.value as? [[String:Any]] else {
                             print("cannot add latest chats")
                             completion(false)
                             return
@@ -549,7 +547,7 @@ extension DatabaseManager{
                         var position = 0
                         var lastest_message:[String:Any]?
                         
-                        for chatDictionary in currentChat{
+                        for chatDictionary in otherChat{
                             if let _chatId = chatDictionary["id"] as? String, _chatId == chatId {
                                 lastest_message = chatDictionary
                                 break
@@ -562,9 +560,9 @@ extension DatabaseManager{
                             return
                         }
                         
-                        currentChat[position] = final_chat
+                        otherChat[position] = final_chat
                         
-                        strongSelf.database.child("\(otheremail)/chats").setValue(currentChat) { (error, _) in
+                        strongSelf.database.child("\(otheremail)/chats").setValue(otherChat) { (error, _) in
                             guard error == nil else {
                                 completion(false)
                                 return

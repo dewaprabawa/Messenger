@@ -81,7 +81,7 @@ class ChatToConversationViewController: MessagesViewController {
             return nil
         }
         
-       return Sender(photoURL:"", senderId: email, displayName: "Joe Smith")
+        return Sender(photoURL:"", senderId: email.safeDatabaseKey(), displayName: "Joe Smith")
     }
     
     override func viewDidLoad() {
@@ -94,6 +94,23 @@ class ChatToConversationViewController: MessagesViewController {
         messagesCollectionView.messagesLayoutDelegate = self
         messagesCollectionView.messagesDisplayDelegate = self
         messageInputBar.delegate = self
+        setupInputButton()
+        
+    }
+    
+    private func setupInputButton(){
+        let button = InputBarButtonItem()
+        button.setSize(CGSize(width: 35, height: 35), animated: false)
+        button.setImage(UIImage(systemName: "paperclip"), for: .normal)
+        messageInputBar.setLeftStackViewWidthConstant(to: 36, animated: false)
+        messageInputBar.setStackViewItems([button], forStack: .left, animated: false)
+        button.onTouchUpInside { [weak self](_) in
+            self?.presentInputActionSheet()
+        }
+    }
+    
+    private func presentInputActionSheet(){
+//        let actionController = UIAlertController(title: "", message: <#T##String?#>, preferredStyle: <#T##UIAlertController.Style#>)
     }
     
     override func viewDidAppear(_ animated: Bool) {
