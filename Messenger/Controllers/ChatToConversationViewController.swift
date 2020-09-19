@@ -9,6 +9,7 @@
 import UIKit
 import MessageKit
 import InputBarAccessoryView
+import JGProgressHUD
 
 struct Message: MessageType {
    public var sender: SenderType
@@ -55,6 +56,7 @@ class ChatToConversationViewController: MessagesViewController {
     public let otherUserEmail:String
     private let chatid: String?
     public var isNewConversation = false
+    
     
     init(with email:String, id: String?){
         self.otherUserEmail = email
@@ -110,7 +112,54 @@ class ChatToConversationViewController: MessagesViewController {
     }
     
     private func presentInputActionSheet(){
-//        let actionController = UIAlertController(title: "", message: <#T##String?#>, preferredStyle: <#T##UIAlertController.Style#>)
+        let actionController = UIAlertController(title: "Attach Media", message: "What would you like to attach", preferredStyle: .actionSheet)
+        
+        actionController.addAction(UIAlertAction(title: "Photo", style: .default, handler: { [weak self] _ in
+            self?.presentPhotoInputAction()
+        }))
+        
+        actionController.addAction(UIAlertAction(title: "Video", style: .default, handler: { [weak self] _ in
+            self?.presentPhotoInputAction()
+        }))
+        
+        actionController.addAction(UIAlertAction(title: "Audio", style: .default, handler: { [weak self] _ in
+            self?.presentVideoInputAction()
+        }))
+        
+        actionController.addAction(UIAlertAction(title: "Cancel", style: .cancel, handler: nil))
+        
+        present(actionController, animated: true)
+    }
+    
+    private func presentPhotoInputAction(){
+        let actionController = UIAlertController(title: "Attach Photo", message: "What would you like to attach", preferredStyle: .actionSheet)
+        
+        actionController.addAction(UIAlertAction(title: "Camera", style: .default, handler: { [weak self] _ in
+            let picker = UIImagePickerController()
+            picker.allowsEditing = true
+            picker.delegate = self
+            picker.sourceType = .camera
+            self?.present(picker, animated: true, completion: nil)
+        }))
+        
+        actionController.addAction(UIAlertAction(title: "Library", style: .default, handler: { [weak self] _ in
+           let picker = UIImagePickerController()
+            picker.sourceType = .photoLibrary
+            picker.delegate = self
+            picker.present(picker, animated: true, completion: nil)
+            picker.allowsEditing = true
+            self?.present(picker, animated: true, completion: nil)
+        }))
+        
+        actionController.addAction(UIAlertAction(title: "Cancel", style:.cancel, handler: nil))
+    }
+    
+    private func presentVideoInputAction(){
+        
+    }
+    
+    private func presentAudioInputAction(){
+        
     }
     
     override func viewDidAppear(_ animated: Bool) {
@@ -134,7 +183,7 @@ class ChatToConversationViewController: MessagesViewController {
                 self?.messages = chats
                 
                 DispatchQueue.main.async {
-                 self?.messagesCollectionView.reloadDataAndKeepOffset()
+                    self?.messagesCollectionView.reloadDataAndKeepOffset()
                     
                     if isScrollToBottom {
                         self?.messagesCollectionView.scrollToBottom()
@@ -144,6 +193,10 @@ class ChatToConversationViewController: MessagesViewController {
             }
         }
     }
+}
+
+extension ChatToConversationViewController: UIImagePickerControllerDelegate, UINavigationControllerDelegate {
+    
 }
 
 extension ChatToConversationViewController: InputBarAccessoryViewDelegate {
