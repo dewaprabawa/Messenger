@@ -7,6 +7,7 @@
 //
 
 import FirebaseDatabase
+import MessageKit
 
 class DatabaseManager{
     static var shared = DatabaseManager()
@@ -315,8 +316,10 @@ extension DatabaseManager{
             messageContent = messageText
         case .attributedText(_):
             break
-        case .photo(_):
-            break
+        case .photo(let media):
+            if let mediaURL = media.url?.absoluteString{
+                messageContent = mediaURL
+            }
         case .video(_):
             break
         case .location(_):
@@ -403,27 +406,52 @@ extension DatabaseManager{
             
             let messages:[Message] = value.compactMap { (dictionary) in
                 guard let name = dictionary["name"] as? String,
-//                    let isRead = dictionary["is_read"] as? Bool,
+                    let isRead = dictionary["is_read"] as? Bool,
                     let messageID = dictionary["id"] as? String,
                     let content = dictionary["content"] as? String,
                     let senderEmail = dictionary["sender_email"] as? String,
-//                    let type = dictionary["type"] as? String,
+                    let type = dictionary["type"] as? String,
                     let dateString = dictionary["date"] as? String,
-                    let date = ChatToConversationViewController.dateFormater.date(from: dateString) else {
+                    let date = ChatToConversationViewController.dateFormater.date(from: dateString),
+                    let placeholder = UIImage(systemName: "photo"),
+                    let imageURL = URL(string:content) else {
                         return nil
+                }
+                
+                guard let placeholderVideo = UIImage(systemName: "video") else {
+                   return nil
+                }
+                
+                var messageType: MessageKind?
+                
+                if type == "photo" {
+                    let media = Media(url: imageURL, image: nil, placeholderImage: placeholder, size: CGSize(width: 300, height: 300))
+                    messageType = .photo(media)}
+                else if type == "video"{
+                    
+                    let media = Media(url: imageURL, image: nil, placeholderImage: placeholderVideo , size: .zero)
+                    
+                    messageType = .video(media)
+                    
+                }else{
+                    messageType = .text(content)
+                }
+                
+                guard let finalType = messageType else {
+                    return nil
                 }
                 
                 let sender = Sender(photoURL: "", senderId: senderEmail, displayName: name)
                 
-                return Message(sender:sender, messageId: messageID, sentDate: date, kind: .text(content))
+                return Message(sender:sender, messageId: messageID, sentDate: date, kind: finalType)
             }
             completion(.success(messages))
         }
         
     }
     
-    //Send message with target chat and message
-    public func sendMessages(to chatId:String,other_user name: String, otheremail:String, message:Message, completion:@escaping (Bool)-> Void){
+    ///Send message with target chat and message
+    public func sendMessages(to chatId:String, other_user name: String, otheremail:String, message: Message, completion:@escaping (Bool)-> Void){
     
         database.child("\(chatId)/messages").observeSingleEvent(of: .value) { [weak self] (snapshot) in
             guard let strongSelf = self else {
@@ -436,13 +464,14 @@ extension DatabaseManager{
             }
             
             guard let currentEmailUser = UserDefaults.standard.value(forKey: "email") as? String else {
-                       completion(false)
-                       return
-                   }
+                completion(false)
+                return
+            }
                    
                    let safeEmail = currentEmailUser.safeDatabaseKey()
                    
                    let messageDate = ChatToConversationViewController.dateFormater.string(from: message.sentDate)
+            
                    var messageContent = ""
                    
                    switch message.kind {
@@ -451,10 +480,14 @@ extension DatabaseManager{
                        messageContent = messageText
                    case .attributedText(_):
                        break
-                   case .photo(_):
-                       break
-                   case .video(_):
-                       break
+                   case .photo(let media):
+                    if let mediaURL = media.url?.absoluteString{
+                        messageContent = mediaURL
+                    }
+                   case .video(let videoURL):
+                    if let video = videoURL.url{
+                        messageContent = video.absoluteString
+                    }
                    case .location(_):
                        break
                    case .emoji(_):
@@ -488,8 +521,7 @@ extension DatabaseManager{
                     completion(false)
                     return
                 }
-                
-                
+        
                 ///Updating the latest user chat
                 strongSelf.database.child("\(safeEmail)/chats").observeSingleEvent(of: .value) { (snapshot) in
                     guard var currentChat = snapshot.value as? [[String:Any]] else {
@@ -569,8 +601,6 @@ extension DatabaseManager{
                             }
                             
                             ///Updating other user chat
-                            
-                            
                             completion(true)
                         }
                      

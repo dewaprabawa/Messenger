@@ -300,10 +300,12 @@ extension RegisterViewController: UIImagePickerControllerDelegate, UINavigationC
             self?.takePhoto()
         }))
         actionSheet.addAction(UIAlertAction(title: "Pick in Gallery", style: .default, handler: { [weak self] _ in
+            self?.spinner.show(in: self!.view)
             self?.pickInGallery()
         }))
         
         present(actionSheet, animated: true, completion: nil)
+        
     }
     
     private func takePhoto(){
@@ -326,9 +328,11 @@ extension RegisterViewController: UIImagePickerControllerDelegate, UINavigationC
         picker.dismiss(animated: true, completion: nil)
         let selectedImage = info[UIImagePickerController.InfoKey.editedImage] as? UIImage
         self.ProfilePicture.image = selectedImage
+        self.spinner.dismiss()
     }
     
     func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
         picker.dismiss(animated: true, completion: nil)
+        
     }
 }

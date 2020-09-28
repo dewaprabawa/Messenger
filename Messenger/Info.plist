@@ -63,6 +63,8 @@
 	<string>Please allow the access of camera</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>
 	<string>Please allow the access to select the photo profile</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Please allow the access to select the video and audio</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

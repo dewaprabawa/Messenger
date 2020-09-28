@@ -180,7 +180,6 @@ class LoginViewController: UIViewController {
         stackView.addArrangedSubview(googleBtn)
         stackView.addArrangedSubview(facebookButtonContainer)
         stackView.addArrangedSubview(createAccountIfDoesNotHave)
-        
     }
     
     deinit {
@@ -240,7 +239,6 @@ class LoginViewController: UIViewController {
             self.stackView.topAnchor.constraint(equalTo: self.scrollView.topAnchor),
             self.stackView.trailingAnchor.constraint(equalTo: self.scrollView.trailingAnchor),
             self.stackView.bottomAnchor.constraint(equalTo: self.scrollView.bottomAnchor),
-            
             self.stackView.widthAnchor.constraint(equalTo: self.view.widthAnchor)
             
         ])
